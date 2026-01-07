@@ -1,0 +1,124 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  docker-debian:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [trixie]
+        boot: [bios]
+        arch: [amd]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+
+      - name: download ssh pub
+        run: |
+          mkdir -p ~/.ssh
+          curl -fsSL https://github.com/tcurdt.keys > ~/.ssh/id_ed25519.pub
+
+      - name: build debian (${{ matrix.boot }})
+        run: |
+          VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch}} ./dd-debian/docker.sh
+
+      - name: upload image
+        uses: actions/upload-artifact@v6
+        with:
+          name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch}}
+          path: dd-debian/output/*.img.zst
+          compression-level: 0
+          retention-days: 30
+
+  # docker-nixos:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       boot: [bios]
+  #   steps:
+  #     - name: checkout
+  #       uses: actions/checkout@v4
+
+  #     - name: build nixos (${{ matrix.boot }})
+  #       run: |
+  #         cd dd-nixos
+  #         ./build.sh flake.nix ${{ matrix.boot }}
+
+  #     - name: upload image
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: nixos-25.05-${{ matrix.boot }}-x86-docker
+  #         path: dd-nixos/output/*.img.zst
+  #         retention-days: 30
+
+  # native-debian:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       boot: [bios]
+  #   steps:
+  #     - name: checkout
+  #       uses: actions/checkout@v4
+
+  #     - name: setup
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y \
+  #           debootstrap \
+  #           parted \
+  #           kpartx \
+  #           btrfs-progs \
+  #           grub-pc-bin \
+  #           grub2-common \
+  #           dosfstools \
+  #           zstd \
+  #           qemu-utils
+
+  #     - name: download ssh pub
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         curl -fsSL https://github.com/tcurdt.keys > ~/.ssh/id_ed25519.pub
+
+  #     - name: build debian (${{ matrix.boot }})
+  #       run: |
+  #         sudo -E bash -c "VERSION=trixie BOOT=${{ matrix.boot }} ARCH=amd OUTPUT_DIR=$(pwd)/output ./dd-debian/build.sh"
+
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: debian-trixie-${{ matrix.boot }}-amd64
+  #         path: output/*.img.zst
+  #         retention-days: 30
+
+  # native-nixos:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       boot: [bios]
+  #   steps:
+  #     - name: checkout
+  #       uses: actions/checkout@v4
+
+  #     - name: setup nix
+  #       uses: DeterminateSystems/nix-installer-action@main
+
+  #     - name: configure nix
+  #       run: |
+  #         echo "experimental-features = nix-command flakes" | sudo tee -a /etc/nix/nix.conf
+
+  #     - name: build nixos (${{ matrix.boot }})
+  #       run: |
+  #         cd dd-nixos
+  #         ./build.sh flake.nix ${{ matrix.boot }}
+
+  #     - name: upload image
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: nixos-25.05-${{ matrix.boot }}-x86
+  #         path: dd-nixos/output/*.img.zst
+  #         retention-days: 30

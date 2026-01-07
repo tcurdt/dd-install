@@ -1,0 +1,9 @@
+output/
+test/
+*.img
+*.img.zst
+*.iso
+*.qcow2
+.ssh_id.pub
+dd-alpine
+dd-nixos
