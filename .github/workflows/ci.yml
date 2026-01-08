@@ -28,7 +28,8 @@ jobs:
         run: |
           cd dd-nixos-gen
           nix build .#${{ matrix.server }} --print-build-logs
-          ls -la
+          ls -lh result/
+          find result -type f -exec ls -lh {} \;
 
       # - name: compress image
       #   run: |
