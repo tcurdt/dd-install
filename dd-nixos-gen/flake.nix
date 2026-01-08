@@ -93,7 +93,7 @@
         documentation.doc.enable = false;
         fonts.fontconfig.enable = false;
         services.udisks2.enable = false;
-        programs.bash.enableCompletion = false;
+        programs.bash.completion.enable = false;
 
         # nix.enable = false;
 
