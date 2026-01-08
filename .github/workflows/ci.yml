@@ -31,6 +31,18 @@ jobs:
           ls -lh result/
           find result -type f -exec ls -lh {} \;
 
+      - name: analyze image size
+        run: |
+          cd dd-nixos-gen
+          mkdir -p /tmp/mnt
+          sudo mount -o loop,ro result/nixos.img /tmp/mnt
+          echo "=== disk usage breakdown ==="
+          sudo du -h -d 1 /tmp/mnt | sort -h
+          echo ""
+          echo "=== nix store size ==="
+          sudo du -sh /tmp/mnt/nix/store
+          sudo umount /tmp/mnt
+
       # - name: compress image
       #   run: |
       #     cd dd-nixos-gen
