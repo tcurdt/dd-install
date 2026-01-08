@@ -103,7 +103,7 @@
           modules = [
             baseConfig
             {
-              virtualisation.diskSize = 5 * 1024; # 5GB
+              virtualisation.diskSize = "auto";
             }
           ];
         };
