@@ -94,13 +94,13 @@
         fonts.fontconfig.enable = false;
         services.udisks2.enable = false;
         programs.bash.completion.enable = false;
-
-        # nix.enable = false;
-
-        boot.kernelPackages = pkgs.linuxPackages_latest;
+        programs.vim.defaultEditor = false;
+        environment.stub-ld.enable = false; # disable FHS comp. layer
+        system.extraDependencies = [];
+        nix.channel.enable = false;
         hardware.enableRedistributableFirmware = false;
         hardware.firmware = [];
-
+        boot.kernelPackages = pkgs.linuxPackages_latest;
         boot.initrd.compressor = "zstd";
         boot.initrd.systemd.enable = lib.mkForce false;
         boot.initrd.includeDefaultModules = false;

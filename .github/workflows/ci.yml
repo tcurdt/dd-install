@@ -55,6 +55,11 @@ jobs:
           echo ""
           echo "=== Top 20 largest files ==="
           sudo find /tmp/mnt -type f -exec du -h {} + | sort -rh | head -20
+
+          echo ""
+          echo "=== Why is Python included? ==="
+          sudo nix-store --query --referrers /tmp/mnt/nix/store/*-python3-* 2>/dev/null | head -10 || echo "Cannot query referrers"
+
           sudo umount /tmp/mnt
           sudo losetup -d $LOOP_DEV
 
