@@ -63,7 +63,7 @@
           };
         };
 
-        environment.defaultPackages = [];
+        environment.defaultPackages = lib.mkForce [];
         environment.systemPackages = with pkgs; [
           nano
           curl
@@ -77,7 +77,7 @@
           then lib.splitString "\n" (lib.removeSuffix "\n" (builtins.readFile ./authorized_keys))
           else [];
 
-        # make minimal
+        # minimal
         programs.command-not-found.enable = false;
         security.polkit.enable = false;
         security.audit.enable = false;
@@ -90,7 +90,20 @@
         documentation.info.enable = false;
         documentation.man.enable = false;
         documentation.nixos.enable = false;
+        documentation.doc.enable = false;
         fonts.fontconfig.enable = false;
+        services.udisks2.enable = false;
+        programs.bash.enableCompletion = false;
+
+        # nix.enable = false;
+
+        boot.kernelPackages = pkgs.linuxPackages_latest;
+        hardware.enableRedistributableFirmware = false;
+        hardware.firmware = [];
+
+        boot.initrd.compressor = "zstd";
+        boot.initrd.systemd.enable = lib.mkForce false;
+        boot.initrd.includeDefaultModules = false;
 
         system.stateVersion = "25.05";
       };
