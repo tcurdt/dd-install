@@ -1,4 +1,5 @@
 FROM debian:trixie
+WORKDIR /work
 
 RUN apt-get update && apt-get install -y \
   debootstrap \
@@ -13,8 +14,6 @@ RUN apt-get update && apt-get install -y \
   zstd \
   curl \
   && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /work
 
 COPY build.sh /work/build.sh
 RUN chmod +x /work/build.sh

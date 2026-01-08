@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # usage:
 #   ./docker.sh                                   # defaults
-#   VERSION=trixie BOOT=bios ARCH=x86 ./docker.sh # defaults explicit
+#   VERSION=trixie BOOT=bios ARCH=amd ./docker.sh # defaults explicit
 #   VERSION=bookworm ./docker.sh                  # different version
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

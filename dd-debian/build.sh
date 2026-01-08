@@ -11,7 +11,6 @@ set -Euo pipefail
 mkdir -p "$OUTPUT_DIR"
 
 ARCH_BITS="${ARCH}64"
-# SSH_PUBKEY="$(cat "$SSH_PUBKEY_FILE")"
 
 IMAGE="debian-${VERSION}-${BOOT}-${ARCH_BITS}"
 IMAGE_SIZE="${IMAGE_SIZE:-5G}"
