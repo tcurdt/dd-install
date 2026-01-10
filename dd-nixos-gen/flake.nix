@@ -86,7 +86,7 @@
         boot.initrd.includeDefaultModules = false;
         # boot.initrd.kernelModules = [ "ext4" ... ];
         boot.initrd.systemd.enable = lib.mkForce false;
-        boot.kernelPackages = pkgs.linuxPackages_hardened; # linuxPackages_latest;
+        boot.kernelPackages = pkgs.linuxPackages; # pkgs.linuxPackages_hardened; # pkgs.linuxPackages_latest;
         # disabledModules = [
         #   <nixpkgs/nixos/modules/profiles/all-hardware.nix>
         #   <nixpkgs/nixos/modules/profiles/base.nix>
@@ -105,6 +105,7 @@
         fonts.fontconfig.enable = false;
         hardware.enableRedistributableFirmware = false;
         hardware.firmware = [];
+        i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
         nix.channel.enable = false;
         programs.bash.completion.enable = false;
         programs.command-not-found.enable = false;

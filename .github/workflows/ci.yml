@@ -71,18 +71,16 @@ jobs:
           sudo kpartx -d $LOOP_DEV
           sudo losetup -d $LOOP_DEV
 
-      # - name: compress image
-      #   run: |
-      #     cd dd-nixos-gen
-      #     mkdir -p output
-      #     echo "=== Compressing image with zstd -19 ==="
-      #     time zstd -19 result/nixos.img -o output/nixos-25.05-cpx11.img.zst
-      #     echo ""
-      #     echo "=== Final sizes ==="
-      #     ls -lh result/nixos.img
-      #     ls -lh output/nixos-25.05-cpx11.img.zst
-      #     echo ""
-      #     echo "Compression ratio: $(echo "scale=2; $(stat -c%s output/nixos-25.05-cpx11.img.zst) * 100 / $(stat -c%s result/nixos.img)" | bc)%"
+      - name: compress image
+        run: |
+          cd dd-nixos-gen
+          mkdir -p output
+          echo "=== Compressing image with zstd -19 ==="
+          time zstd -19 result/nixos.img -o output/nixos-25.05-cpx11.img.zst
+          echo ""
+          echo "=== Final sizes ==="
+          ls -lh result/nixos.img
+          ls -lh output/nixos-25.05-cpx11.img.zst
 
       # - name: upload artifact
       #   uses: actions/upload-artifact@v6
