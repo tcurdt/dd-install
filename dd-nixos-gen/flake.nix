@@ -34,7 +34,8 @@
         '';
 
         boot.initrd.availableKernelModules = [
-          "ahci" "xhci_pci" "virtio_pci" "virtio_blk" "virtio_scsi"
+          "virtio_pci" "virtio_blk" "virtio_scsi"
+          "ahci" "xhci_pci"
           "sd_mod" "sr_mod" "ata_piix"
         ];
 
@@ -63,50 +64,58 @@
           };
         };
 
-        environment.defaultPackages = lib.mkForce [];
-        environment.systemPackages = with pkgs; [
-          nano
-          curl
-        ];
-
         time.timeZone = "UTC";
 
-        # SSH key for initial boot
+        # keys for initial boot
         users.users.root.openssh.authorizedKeys.keys =
           if builtins.pathExists ./authorized_keys
           then lib.splitString "\n" (lib.removeSuffix "\n" (builtins.readFile ./authorized_keys))
           else [];
 
         # minimal
-        programs.command-not-found.enable = false;
-        security.polkit.enable = false;
-        security.audit.enable = false;
         boot.enableContainers = false;
+        boot.initrd.compressor = "zstd";
+        boot.initrd.includeDefaultModules = false;
+        boot.initrd.systemd.enable = lib.mkForce false;
+        boot.kernelPackages = pkgs.linuxPackages_hardened; # linuxPackages_latest;
+        documentation.enable = false;
+        # documentation.doc.enable = false;
+        # documentation.info.enable = false;
+        # documentation.man.enable = false;
+        # documentation.nixos.enable = false;
+        environment.defaultPackages = lib.mkForce [];
+        environment.systemPackages = with pkgs; [
+          nano
+          curl
+        ];
+        environment.stub-ld.enable = false;
+        fonts.fontconfig.enable = false;
+        hardware.enableRedistributableFirmware = false;
+        hardware.firmware = [];
+        nix.channel.enable = false;
+        programs.bash.completion.enable = false;
+        programs.command-not-found.enable = false;
+        programs.vim.defaultEditor = false;
+        security.audit.enable = false;
+        security.polkit.enable = false;
+        services.udisks2.enable = false;
+        system.extraDependencies = [];
         xdg.autostart.enable = false;
         xdg.icons.enable = false;
         xdg.mime.enable = false;
         xdg.sounds.enable = false;
-        documentation.enable = false;
-        documentation.info.enable = false;
-        documentation.man.enable = false;
-        documentation.nixos.enable = false;
-        documentation.doc.enable = false;
-        fonts.fontconfig.enable = false;
-        services.udisks2.enable = false;
-        programs.bash.completion.enable = false;
-        programs.vim.defaultEditor = false;
-        environment.stub-ld.enable = false; # disable FHS comp. layer
-        system.extraDependencies = [];
-        nix.channel.enable = false;
-        hardware.enableRedistributableFirmware = false;
-        hardware.firmware = [];
-        boot.kernelPackages = pkgs.linuxPackages_latest;
-        boot.initrd.compressor = "zstd";
-        boot.initrd.systemd.enable = lib.mkForce false;
-        boot.initrd.includeDefaultModules = false;
 
         system.stateVersion = "25.05";
       };
+
+      nixosSystem = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          baseConfig
+          { virtualisation.diskSize = "auto"; }
+        ];
+      };
+
     in
     {
       packages.x86_64-linux = {
@@ -123,5 +132,7 @@
       };
 
       packages.x86_64-linux.default = self.packages.x86_64-linux.cpx11;
+
+      nixosConfigurations.cpx11 = nixosSystem;
     };
 }
