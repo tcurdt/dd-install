@@ -29,9 +29,11 @@ jobs:
           cd dd-nixos-gen
           nix build .#${{ matrix.server }} --print-build-logs
 
-          nix why-depends .#nixosConfigurations.cpx11.config.system.build.toplevel /nix/store/3p306srz83h9z9v0ma9xcxb8y8cdxkxj-source
+          # echo "why source?"
+          # nix why-depends .#nixosConfigurations.cpx11.config.system.build.toplevel /nix/store/3p306srz83h9z9v0ma9xcxb8y8cdxkxj-source
 
-          nix why-depends .#nixosConfigurations.cpx11.config.system.build.toplevel $(nix eval --raw '.#nixosConfigurations.cpx11.config.environment.systemPackages' | grep python | head -1)
+          echo "why python?"
+          nix why-depends .#nixosConfigurations.cpx11.config.system.build.toplevel /nix/store/jd20rkmqmkfkcvk2wl2lmzz7acq4svlr-python3-3.12.12
 
       - name: analyze image size
         run: |

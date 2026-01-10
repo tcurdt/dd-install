@@ -18,6 +18,14 @@
           "${modulesPath}/profiles/minimal.nix"
         ];
 
+        nix.registry = lib.mkForce {};
+        # nix.registry.nixpkgs.to = {
+        #   type = "github";
+        #   owner = "NixOS";
+        #   repo = "nixpkgs";
+        #   ref = "nixos-25.05";
+        # };
+
         # BIOS boot
         boot.loader.grub = {
           enable = true;
