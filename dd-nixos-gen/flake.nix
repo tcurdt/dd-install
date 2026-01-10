@@ -76,8 +76,13 @@
         boot.enableContainers = false;
         boot.initrd.compressor = "zstd";
         boot.initrd.includeDefaultModules = false;
+        # boot.initrd.kernelModules = [ "ext4" ... ];
         boot.initrd.systemd.enable = lib.mkForce false;
         boot.kernelPackages = pkgs.linuxPackages_hardened; # linuxPackages_latest;
+        # disabledModules = [
+        #   <nixpkgs/nixos/modules/profiles/all-hardware.nix>
+        #   <nixpkgs/nixos/modules/profiles/base.nix>
+        # ];
         documentation.enable = false;
         # documentation.doc.enable = false;
         # documentation.info.enable = false;
@@ -100,6 +105,7 @@
         security.polkit.enable = false;
         services.udisks2.enable = false;
         system.extraDependencies = [];
+        system.disableInstallerTools = true;
         xdg.autostart.enable = false;
         xdg.icons.enable = false;
         xdg.mime.enable = false;
