@@ -107,13 +107,13 @@ jobs:
 
       - name: build debian
         run: |
-          VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch}} ./dd-debian/docker.sh
+          VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} ./dd-debian/docker.sh
 
       - name: compress image
-          run: |
-            cd dd-debian
-            echo "=== Final sizes ==="
-            ls -lh output/*.img.zst
+        run: |
+          cd dd-debian
+          echo "=== Final sizes ==="
+          ls -lh output/*.img.zst
 
 # - name: upload image
 #   uses: actions/upload-artifact@v6
