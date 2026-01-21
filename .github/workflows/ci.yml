@@ -108,6 +108,7 @@ jobs:
       - name: compress image
         run: |
           cd dd-debian
+          find .
           ls -lh result/*.img
           # mkdir -p output
           # time zstd -19 result/debian.img \

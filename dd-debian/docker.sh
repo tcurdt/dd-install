@@ -28,7 +28,7 @@ docker build \
 #   "$DIR"
 
 docker run --rm --privileged \
-  -v "$OUTPUT_DIR:/output" \
+  -v "$OUTPUT_DIR:/result" \
   -v "$SSH_PUBKEY_FILE:/etc/ssh.pub:ro" \
   -e VERSION="$VERSION" \
   -e BOOT="$BOOT" \
