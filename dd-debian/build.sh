@@ -34,7 +34,7 @@ cleanup() {
 trap cleanup EXIT SIGINT SIGTERM
 
 # Create sparse disk image
-IMAGE_PATH="$OUTPUT_DIR/${IMAGE}.img"
+IMAGE_PATH="$OUTPUT_DIR/${IMAGE}"
 echo "[1/9] Creating sparse disk image ($IMAGE_SIZE)..."
 rm -f "$IMAGE_PATH"
 truncate -s "$IMAGE_SIZE" "$IMAGE_PATH"

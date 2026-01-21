@@ -71,10 +71,11 @@ jobs:
       - name: compress image
         run: |
           cd dd-nixos-gen
+          ls -lh result/*.img
+          mkdir -p output
           time zstd -19 result/nixos.img \
-            -o result/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zst
-          ls -lh result/nixos.img
-          ls -lh result/*.img.zst
+            -o output/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zst
+          ls -lh output/*.img.zst
 
   # - name: upload artifact
   #   uses: actions/upload-artifact@v6
@@ -106,10 +107,11 @@ jobs:
       - name: compress image
         run: |
           cd dd-debian
+          ls -lh result/*.img
+          mkdir -p output
           time zstd -19 result/debian.img \
-            -o result/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zst
-          ls -lh result/debian.img
-          ls -lh result/*.img.zst
+            -o output/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zst
+          ls -lh output/*.img.zst
 
 # - name: upload image
 #   uses: actions/upload-artifact@v6
