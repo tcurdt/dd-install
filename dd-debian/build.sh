@@ -4,7 +4,7 @@ VERSION="${VERSION:-trixie}"
 BOOT="${BOOT:-bios}"
 ARCH="${ARCH:-amd}"
 SSH_PUBKEY_FILE="${SSH_PUBKEY_FILE:-$HOME/.ssh/id_ed25519.pub}"
-OUTPUT_DIR="${OUTPUT_DIR:-/output}"
+OUTPUT_DIR="${OUTPUT_DIR:-/result}"
 
 set -Euo pipefail
 
@@ -12,7 +12,8 @@ mkdir -p "$OUTPUT_DIR"
 
 ARCH_BITS="${ARCH}64"
 
-IMAGE="debian-${VERSION}-${BOOT}-${ARCH_BITS}"
+# IMAGE="debian-${VERSION}-${BOOT}-${ARCH_BITS}.img"
+IMAGE="debian.img"
 IMAGE_SIZE="${IMAGE_SIZE:-5G}"
 
 echo "VERSION: $VERSION"
@@ -250,11 +251,11 @@ losetup -d "$LOOP_DEV"
 LOOP_DEV=""
 
 # Compress with zstd
-echo "Compressing image with zstd..."
-COMPRESSED_IMAGE="$OUTPUT_DIR/${IMAGE}.img.zst"
-zstd -19 --rm "$IMAGE_PATH" -o "$COMPRESSED_IMAGE"
+# echo "Compressing image with zstd..."
+# COMPRESSED_IMAGE="$OUTPUT_DIR/${IMAGE}.img.zst"
+# zstd -19 --rm "$IMAGE_PATH" -o "$COMPRESSED_IMAGE"
 
-echo ""
-echo "======================================"
-echo "Image: $COMPRESSED_IMAGE"
-echo "Size: $(du -h "$COMPRESSED_IMAGE" | cut -f1)"
+# echo ""
+# echo "======================================"
+# echo "Image: $COMPRESSED_IMAGE"
+# echo "Size: $(du -h "$COMPRESSED_IMAGE" | cut -f1)"

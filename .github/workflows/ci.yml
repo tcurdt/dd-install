@@ -7,80 +7,74 @@ on:
   workflow_dispatch:
 
 jobs:
-  # nixos:
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       server: [cpx11]
-  #   steps:
-  #     - name: checkout
-  #       uses: actions/checkout@v6
+  nixos:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [25.05]
+        boot: [bios]
+        arch: [amd]
+        server: [cpx11]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
 
-  #     - name: install nix
-  #       uses: DeterminateSystems/nix-installer-action@main
+      - name: install nix
+        uses: DeterminateSystems/nix-installer-action@main
 
-  #     - name: download ssh pub
-  #       run: |
-  #         cd dd-nixos-gen
-  #         curl -fsSL https://github.com/tcurdt.keys > authorized_keys
+      - name: download ssh pub
+        run: |
+          cd dd-nixos-gen
+          curl -fsSL https://github.com/tcurdt.keys > authorized_keys
 
-  #     - name: build nixos
-  #       run: |
-  #         cd dd-nixos-gen
-  #         nix build .#${{ matrix.server }} --print-build-logs
+      - name: build nixos
+        run: |
+          cd dd-nixos-gen
+          nix build .#${{ matrix.server }} --print-build-logs
 
-  #         # echo "why source?"
-  #         # nix why-depends .#nixosConfigurations.cpx11.config.system.build.toplevel /nix/store/3p306srz83h9z9v0ma9xcxb8y8cdxkxj-source
+      - name: analyze image size
+        run: |
+          cd dd-nixos-gen
 
-  #         echo "why python?"
-  #         nix why-depends .#nixosConfigurations.cpx11.config.system.build.toplevel /nix/store/jd20rkmqmkfkcvk2wl2lmzz7acq4svlr-python3-3.12.12
+          echo "=== Image file ==="
+          ls -lh result/nixos.img
 
-  #     - name: analyze image size
-  #       run: |
-  #         cd dd-nixos-gen
+          echo ""
+          echo "=== Partition table ==="
+          sudo fdisk -l result/nixos.img
 
-  #         echo "=== Image file ==="
-  #         ls -lh result/nixos.img
+          echo ""
+          echo "=== Mounting partition ==="
+          sudo apt-get install -y kpartx
+          LOOP_DEV=$(sudo losetup -f --show result/nixos.img)
+          echo "Loop device: $LOOP_DEV"
 
-  #         echo ""
-  #         echo "=== Partition table ==="
-  #         sudo fdisk -l result/nixos.img
+          sudo kpartx -av $LOOP_DEV
+          sleep 1
 
-  #         echo ""
-  #         echo "=== Mounting partition ==="
-  #         sudo apt-get install -y kpartx
-  #         LOOP_DEV=$(sudo losetup -f --show result/nixos.img)
-  #         echo "Loop device: $LOOP_DEV"
+          PART=$(sudo kpartx -l $LOOP_DEV | head -1 | awk '{print $1}')
+          echo "Partition: /dev/mapper/$PART"
 
-  #         sudo kpartx -av $LOOP_DEV
-  #         sleep 1
+          mkdir -p /tmp/mnt
+          sudo mount -o ro /dev/mapper/$PART /tmp/mnt
 
-  #         PART=$(sudo kpartx -l $LOOP_DEV | head -1 | awk '{print $1}')
-  #         echo "Partition: /dev/mapper/$PART"
+          echo ""
+          echo "=== Nix store size ==="
+          sudo du -sh /tmp/mnt/nix/store 2>/dev/null || echo "No nix store found"
 
-  #         mkdir -p /tmp/mnt
-  #         sudo mount -o ro /dev/mapper/$PART /tmp/mnt
+          sudo du -sh /tmp/mnt/nix/store/* | sort -rh | head -30
 
-  #         echo ""
-  #         echo "=== Nix store size ==="
-  #         sudo du -sh /tmp/mnt/nix/store 2>/dev/null || echo "No nix store found"
+          sudo umount /tmp/mnt
+          sudo kpartx -d $LOOP_DEV
+          sudo losetup -d $LOOP_DEV
 
-  #         sudo du -sh /tmp/mnt/nix/store/* | sort -rh | head -30
-
-  #         sudo umount /tmp/mnt
-  #         sudo kpartx -d $LOOP_DEV
-  #         sudo losetup -d $LOOP_DEV
-
-  #     - name: compress image
-  #       run: |
-  #         cd dd-nixos-gen
-  #         mkdir -p output
-  #         echo "=== Compressing image with zstd -19 ==="
-  #         time zstd -19 result/nixos.img -o output/nixos-25.05-cpx11.img.zst
-  #         echo ""
-  #         echo "=== Final sizes ==="
-  #         ls -lh result/nixos.img
-  #         ls -lh output/nixos-25.05-cpx11.img.zst
+      - name: compress image
+        run: |
+          cd dd-nixos-gen
+          time zstd -19 result/nixos.img \
+            -o result/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zst
+          ls -lh result/nixos.img
+          ls -lh result/*.img.zst
 
   # - name: upload artifact
   #   uses: actions/upload-artifact@v6
@@ -112,8 +106,10 @@ jobs:
       - name: compress image
         run: |
           cd dd-debian
-          echo "=== Final sizes ==="
-          ls -lh output/*.img.zst
+          time zstd -19 result/debian.img \
+            -o result/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zst
+          ls -lh result/debian.img
+          ls -lh result/*.img.zst
 
 # - name: upload image
 #   uses: actions/upload-artifact@v6
