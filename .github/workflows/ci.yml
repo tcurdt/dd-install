@@ -72,6 +72,7 @@ jobs:
         run: |
           cd dd-nixos-gen
           ls -lh result/*.img
+
           # mkdir -p output
           # time zstd -19 result/nixos.img \
           #   -o output/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zst
@@ -82,7 +83,7 @@ jobs:
         with:
           name: nixos-${{ matrix.version }}-${{ matrix.server }}.img
           path: dd-nixos-gen/result/*.img
-          compression-level: 1
+          compression-level: 2
           retention-days: 7
 
   debian:
@@ -108,8 +109,8 @@ jobs:
       - name: compress image
         run: |
           cd dd-debian
-          find .
           ls -lh result/*.img
+
           # mkdir -p output
           # time zstd -19 result/debian.img \
           #   -o output/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zst
@@ -119,6 +120,6 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch}}.img
-          path: dd-debian/output/*.img
-          compression-level: 1
+          path: dd-debian/result/*.img
+          compression-level: 2
           retention-days: 7
