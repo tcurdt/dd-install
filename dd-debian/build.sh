@@ -4,7 +4,7 @@ VERSION="${VERSION:-trixie}"
 BOOT="${BOOT:-bios}"
 ARCH="${ARCH:-amd}"
 SSH_PUBKEY_FILE="${SSH_PUBKEY_FILE:-$HOME/.ssh/id_ed25519.pub}"
-OUTPUT_DIR="${OUTPUT_DIR:-/result}"
+OUTPUT_DIR="${OUTPUT_DIR:-result}"
 
 set -Euo pipefail
 

@@ -72,17 +72,18 @@ jobs:
         run: |
           cd dd-nixos-gen
           ls -lh result/*.img
-          mkdir -p output
-          time zstd -19 result/nixos.img \
-            -o output/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zst
-          ls -lh output/*.img.zst
+          # mkdir -p output
+          # time zstd -19 result/nixos.img \
+          #   -o output/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zst
+          # ls -lh output/*.img.zst
 
-  # - name: upload artifact
-  #   uses: actions/upload-artifact@v6
-  #   with:
-  #     name: nixos-25.05-${{ matrix.boot }}-x86
-  #     path: dd-nixos-gen/output/*.img.zst
-  #     retention-days: 30
+      - name: upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: nixos-${{ matrix.version }}-${{ matrix.server }}.img
+          path: dd-nixos-gen/result/*.img
+          compression-level: 1
+          retention-days: 7
 
   debian:
     runs-on: ubuntu-latest
@@ -108,15 +109,15 @@ jobs:
         run: |
           cd dd-debian
           ls -lh result/*.img
-          mkdir -p output
-          time zstd -19 result/debian.img \
-            -o output/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zst
-          ls -lh output/*.img.zst
+          # mkdir -p output
+          # time zstd -19 result/debian.img \
+          #   -o output/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zst
+          # ls -lh output/*.img.zst
 
-# - name: upload image
-#   uses: actions/upload-artifact@v6
-#   with:
-#     name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch}}
-#     path: dd-debian/output/*.img.zst
-#     compression-level: 0
-#     retention-days: 5
+      - name: upload image
+        uses: actions/upload-artifact@v6
+        with:
+          name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch}}.img
+          path: dd-debian/output/*.img
+          compression-level: 1
+          retention-days: 7
