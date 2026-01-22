@@ -2,7 +2,7 @@
   description = "nixos image for dd-install";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -85,6 +85,10 @@
         boot.initrd.compressor = "zstd";
         boot.initrd.includeDefaultModules = false;
         # boot.initrd.kernelModules = [ "ext4" ... ];
+        boot.initrd.systemd.suppressedUnits = lib.mkIf config.systemd.enableEmergencyMode [
+          "emergency.service"
+          "emergency.target"
+        ];
         boot.initrd.systemd.enable = lib.mkForce false;
         boot.kernelPackages = pkgs.linuxPackages; # pkgs.linuxPackages_hardened; # pkgs.linuxPackages_latest;
         # disabledModules = [
@@ -92,10 +96,6 @@
         #   <nixpkgs/nixos/modules/profiles/base.nix>
         # ];
         documentation.enable = false;
-        # documentation.doc.enable = false;
-        # documentation.info.enable = false;
-        # documentation.man.enable = false;
-        # documentation.nixos.enable = false;
         environment.defaultPackages = lib.mkForce [];
         environment.systemPackages = with pkgs; [
           nano
@@ -119,8 +119,7 @@
         xdg.icons.enable = false;
         xdg.mime.enable = false;
         xdg.sounds.enable = false;
-
-        system.stateVersion = "25.05";
+        system.stateVersion = "25.11";
       };
 
       nixosSystem = nixpkgs.lib.nixosSystem {
