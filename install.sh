@@ -83,7 +83,7 @@ echo "[1/4] Deploying image to disk..."
 
 # Check if image is a URL or local file
 if echo "$IMAGE" | grep -qE '^https?://'; then
-    echo "downloading and decompressing zip from URL..."
+    echo "downloading and decompressing from URL..."
 
     # if ! command -v curl >/dev/null 2>&1; then
     #     echo "Error: curl not found. Install it first: apk add curl"
@@ -94,7 +94,7 @@ if echo "$IMAGE" | grep -qE '^https?://'; then
     #     exit 1
     # fi
 
-    curl -fL "$IMAGE" | bsdtar -xOf - | dd of="$TARGET_DISK" bs=4M
+    curl -fL "$IMAGE" | funzip | dd of="$TARGET_DISK" bs=4M
     # curl -fL "$IMAGE" | zstd -d | dd of="$TARGET_DISK" bs=4M
 else
     # Local file
