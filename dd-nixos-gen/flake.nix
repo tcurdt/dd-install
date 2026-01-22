@@ -16,6 +16,7 @@
       baseConfig = { config, pkgs, lib, modulesPath, ... }: {
         imports = [
           "${modulesPath}/profiles/minimal.nix"
+          "${modulesPath}/profiles/qemu-guest.nix"
         ];
 
         nix.registry = lib.mkForce {};
@@ -34,18 +35,26 @@
         };
 
         # serial console for QEMU
-        boot.kernelParams = [ "console=tty0" "console=ttyS0,115200" ];
-        boot.loader.grub.extraConfig = ''
-          terminal_input console serial
-          terminal_output console serial
-          serial --unit=0 --speed=115200
-        '';
+        # boot.kernelParams = [ "console=tty0" "console=ttyS0,115200" ];
+        # boot.loader.grub.extraConfig = ''
+        #   terminal_input console serial
+        #   terminal_output console serial
+        #   serial --unit=0 --speed=115200
+        # '';
+        # boot.initrd.availableKernelModules = [
+        #   "virtio_pci" "virtio_blk" "virtio_scsi"
+        #   "ahci" "xhci_pci"
+        #   "sd_mod" "sr_mod" "ata_piix"
+        # ];
 
         boot.initrd.availableKernelModules = [
-          "virtio_pci" "virtio_blk" "virtio_scsi"
-          "ahci" "xhci_pci"
-          "sd_mod" "sr_mod" "ata_piix"
+          "ata_piix"
+          "uhci_hcd"
+          "xen_blkfront"
+          "vmw_pvscsi"
         ];
+        boot.initrd.kernelModules = [ "nvme" ];
+
 
         fileSystems."/" = lib.mkForce {
           device = "/dev/disk/by-label/nixos";
