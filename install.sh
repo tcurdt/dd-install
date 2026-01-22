@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Install script for deploying dd images
 #
@@ -26,7 +26,7 @@
 #   5. Sync and reboot
 #
 
-set -eu
+set -euo pipefail
 
 IMAGE="${1:-}"
 TARGET_DISK="${2:-}"
@@ -94,7 +94,7 @@ if echo "$IMAGE" | grep -qE '^https?://'; then
     #     exit 1
     # fi
 
-    curl -fL "$IMAGE" | unzip -p - | dd of="$TARGET_DISK" bs=4M
+    curl -fL "$IMAGE" | bsdtar -xOf - | dd of="$TARGET_DISK" bs=4M
     # curl -fL "$IMAGE" | zstd -d | dd of="$TARGET_DISK" bs=4M
 else
     # Local file
@@ -114,7 +114,7 @@ else
     elif echo "$IMAGE" | grep -qE '\.zst$'; then
         zstd -d -c "$IMAGE" | dd of="$TARGET_DISK" bs=4M
     elif echo "$IMAGE" | grep -qE '\.zip$'; then
-        cat "$IMAGE" | unzip -p - | dd of="$TARGET_DISK" bs=4M
+        bsdtar -xOf "$IMAGE" | dd of="$TARGET_DISK" bs=4M
     else
         echo "Error: Unknown image format (expected .img.zst, .img or .zip)"
         exit 1
@@ -189,10 +189,8 @@ echo ""
 echo "[4/4] Installation complete!"
 echo "======================================"
 echo ""
-echo "The system will now reboot and boot from $TARGET_DISK"
-echo ""
 echo "After reboot, you can SSH in (if SSH keys were injected during build):"
 echo "  ssh -p 2222 root@localhost"
 echo ""
 
-poweroff
+# poweroff
