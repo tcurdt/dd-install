@@ -13,6 +13,8 @@ jobs:
       matrix:
         version: [25.11]
         server: [cpx11]
+        boot: [bios]
+        arch: [amd]
     steps:
       - name: checkout
         uses: actions/checkout@v6
