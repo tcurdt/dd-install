@@ -94,7 +94,11 @@ if echo "$IMAGE" | grep -qE '^https?://'; then
     #     exit 1
     # fi
 
+    # Disable pipefail temporarily: GitHub zips have trailing metadata that
+    # causes funzip to exit non-zero even though the data extracted successfully
+    set +o pipefail
     curl -fL "$IMAGE" | funzip | dd of="$TARGET_DISK" bs=4M
+    set -o pipefail
     # curl -fL "$IMAGE" | zstd -d | dd of="$TARGET_DISK" bs=4M
 else
     # Local file
