@@ -48,10 +48,11 @@
         time.timeZone = "UTC";
 
         # keys for initial boot
-        users.users.root.openssh.authorizedKeys.keys =
-          if builtins.pathExists ./authorized_keys
-          then lib.splitString "\n" (lib.removeSuffix "\n" (builtins.readFile ./authorized_keys))
-          else [];
+        # users.users.root.openssh.authorizedKeys.keys =
+        #   if builtins.pathExists ./authorized_keys
+        #   then lib.splitString "\n" (lib.removeSuffix "\n" (builtins.readFile ./authorized_keys))
+        #   else [];
+        users.users.root.openssh.authorizedKeys.keys = lib.splitString "\n" (lib.removeSuffix "\n" (builtins.readFile ./authorized_keys));
 
         # minimal
         boot.enableContainers = false;
