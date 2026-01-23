@@ -4,6 +4,7 @@
     disk.main = {
       device = lib.mkDefault "/dev/sda";
       type = "disk";
+      imageSize = "6G";  # must be larger than sum of partitions
       content = {
         type = "gpt";
         partitions = {
