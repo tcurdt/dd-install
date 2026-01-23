@@ -6,4 +6,3 @@ test/
 *.qcow2
 .ssh_id.pub
 dd-alpine
-dd-nixos
