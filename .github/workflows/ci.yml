@@ -32,6 +32,7 @@ jobs:
           cd dd-nixos-gen
           nix build .#${{ matrix.server }} --print-build-logs
           find result
+          ls -lh result
 
       # - name: analyze image size
       #   run: |
@@ -69,13 +70,13 @@ jobs:
       #     sudo kpartx -d $LOOP_DEV
       #     sudo losetup -d $LOOP_DEV
 
-      # - name: upload artifact
-      #   uses: actions/upload-artifact@v6
-      #   with:
-      #     name: nixos-${{ matrix.version }}-${{ matrix.server }}.img
-      #     path: dd-nixos-gen/result/*.img
-      #     compression-level: 2
-      #     retention-days: 7
+      - name: upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: nixos-${{ matrix.version }}-${{ matrix.server }}.img
+          path: dd-nixos-gen/result
+          compression-level: 2
+          retention-days: 7
 
       # - name: print download link
       #   run: |
