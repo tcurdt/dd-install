@@ -91,45 +91,45 @@ jobs:
           echo "download via nightly"
           echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zip"
 
-  debian:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        version: [trixie]
-        boot: [bios]
-        arch: [amd]
-    steps:
-      - name: checkout
-        uses: actions/checkout@v6
+  # debian:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       version: [trixie]
+  #       boot: [bios]
+  #       arch: [amd]
+  #   steps:
+  #     - name: checkout
+  #       uses: actions/checkout@v6
 
-      - name: download ssh pub
-        run: |
-          mkdir -p ~/.ssh
-          curl -fsSL https://github.com/tcurdt.keys > ~/.ssh/id_ed25519.pub
+  #     - name: download ssh pub
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         curl -fsSL https://github.com/tcurdt.keys > ~/.ssh/id_ed25519.pub
 
-      - name: build debian
-        run: |
-          VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} ./dd-debian/docker.sh
+  #     - name: build debian
+  #       run: |
+  #         VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} ./dd-debian/docker.sh
 
-      - name: compress image
-        run: |
-          cd dd-debian
-          ls -lh result/*.img
+  #     - name: compress image
+  #       run: |
+  #         cd dd-debian
+  #         ls -lh result/*.img
 
-          # mkdir -p output
-          # time zstd -19 result/debian.img \
-          #   -o output/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zst
-          # ls -lh output/*.img.zst
+  #         # mkdir -p output
+  #         # time zstd -19 result/debian.img \
+  #         #   -o output/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zst
+  #         # ls -lh output/*.img.zst
 
-      - name: upload image
-        uses: actions/upload-artifact@v6
-        with:
-          name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch}}.img
-          path: dd-debian/result/*.img
-          compression-level: 2
-          retention-days: 7
+  #     - name: upload image
+  #       uses: actions/upload-artifact@v6
+  #       with:
+  #         name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch}}.img
+  #         path: dd-debian/result/*.img
+  #         compression-level: 2
+  #         retention-days: 7
 
-      - name: print download link
-        run: |
-          echo "download via nightly.link"
-          echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zip"
+  #     - name: print download link
+  #       run: |
+  #         echo "download via nightly.link"
+  #         echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zip"
