@@ -24,14 +24,14 @@ jobs:
 
       - name: download ssh pub
         run: |
-          cd dd-nixos-gen
+          cd dd-nixos
           curl -fsSL https://github.com/tcurdt.keys > authorized_keys
           git add authorized_keys
 
       - name: build nixos
         run: |
-          cd dd-nixos-gen
-          # replace nixos-25.11 with nixos-${{ matrix.version }}
+          cd dd-nixos
+          sed -i 's|nixpkgs/nixos-25.11|nixpkgs/nixos-${{ matrix.version }}|g' flake.nix
           nix build .#${{ matrix.server }} --print-build-logs
           ls -lh result
 
@@ -39,7 +39,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: nixos-${{ matrix.version }}-${{ matrix.server }}.img
-          path: dd-nixos-gen/result
+          path: dd-nixos/result
           compression-level: 2
           retention-days: 7
 
