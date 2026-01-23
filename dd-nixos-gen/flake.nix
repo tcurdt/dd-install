@@ -3,74 +3,36 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
+    disko = {
+      url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, nixos-generators }:
+  outputs = { self, nixpkgs, disko }:
     let
       system = "x86_64-linux";
 
+      # Base configuration shared by all server types
       baseConfig = { config, pkgs, lib, modulesPath, ... }: {
         imports = [
           "${modulesPath}/profiles/minimal.nix"
           "${modulesPath}/profiles/qemu-guest.nix"
+          disko.nixosModules.disko
+          ./disco.nix
         ];
 
         nix.registry = lib.mkForce {};
-        # nix.registry.nixpkgs.to = {
-        #   type = "github";
-        #   owner = "NixOS";
-        #   repo = "nixpkgs";
-        #   ref = "nixos-25.05";
-        # };
 
-        # BIOS boot
-        boot.loader.grub = {
-          enable = true;
-          device = lib.mkForce "/dev/sda";
-          efiSupport = false;
-        };
-
-        # serial console for QEMU
-        # boot.kernelParams = [ "console=tty0" "console=ttyS0,115200" ];
-        # boot.loader.grub.extraConfig = ''
-        #   terminal_input console serial
-        #   terminal_output console serial
-        #   serial --unit=0 --speed=115200
-        # '';
-        # boot.initrd.availableKernelModules = [
-        #   "virtio_pci" "virtio_blk" "virtio_scsi"
-        #   "ahci" "xhci_pci"
-        #   "sd_mod" "sr_mod" "ata_piix"
-        # ];
+        # BIOS boot - disko handles grub device via disco.nix
+        boot.loader.grub.enable = true;
+        boot.loader.grub.efiSupport = false;
 
         boot.initrd.availableKernelModules = [ "ahci" "virtio_pci" "virtio_scsi" "sd_mod" "sr_mod" ];
 
-        # boot.initrd.availableKernelModules = [
-        #   "ata_piix"
-        #   "uhci_hcd"
-        #   "xen_blkfront"
-        #   "vmw_pvscsi"
-        # ];
-        # boot.initrd.kernelModules = [ "nvme" ];
+        # fileSystems are defined by disko in disco.nix
 
-
-        fileSystems."/" = lib.mkForce {
-          device = "/dev/disk/by-label/nixos";
-          fsType = "ext4";
-          options = [ "noatime" ];
-        };
-
-        fileSystems."/var/lib" = lib.mkForce {
-          device = "/dev/disk/by-label/varlib";
-          fsType = "ext4";
-          options = [ "noatime" ];
-        };
-
-        networking.hostName = "server";
+        networking.hostName = "server";  # Generic, can be changed post-install
         networking.useDHCP = true;
         networking.firewall.enable = true;
         networking.firewall.allowedTCPPorts = [ 22 ];
@@ -94,18 +56,12 @@
         # minimal
         boot.enableContainers = false;
         boot.initrd.compressor = "zstd";
-        boot.initrd.includeDefaultModules = false;
-        # boot.initrd.kernelModules = [ "ext4" ... ];
         boot.initrd.systemd.suppressedUnits = lib.mkIf config.systemd.enableEmergencyMode [
           "emergency.service"
           "emergency.target"
         ];
         boot.initrd.systemd.enable = lib.mkForce false;
-        boot.kernelPackages = pkgs.linuxPackages; # pkgs.linuxPackages_hardened; # pkgs.linuxPackages_latest;
-        # disabledModules = [
-        #   <nixpkgs/nixos/modules/profiles/all-hardware.nix>
-        #   <nixpkgs/nixos/modules/profiles/base.nix>
-        # ];
+        boot.kernelPackages = pkgs.linuxPackages;
         documentation.enable = false;
         environment.defaultPackages = lib.mkForce [];
         environment.systemPackages = with pkgs; [
@@ -133,31 +89,34 @@
         system.stateVersion = "25.11";
       };
 
-      nixosSystem = nixpkgs.lib.nixosSystem {
+      # Server type configurations (Hetzner cloud server types)
+      servers = {
+        cpx11 = {
+          # Add server-type-specific overrides here (disk size, etc.)
+        };
+        # Add more server types here:
+        # cpx21 = { };
+        # cpx31 = { };
+      };
+
+      # Generate nixosConfigurations for each server type
+      mkNixosConfig = name: cfg: nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
           baseConfig
-          { virtualisation.diskSize = "auto"; }
+          # Add server-type-specific modules here if needed
         ];
       };
 
+      # Generate packages (disk images) for each server
+      mkImagePackage = name: self.nixosConfigurations.${name}.config.system.build.diskoImages;
+
     in
     {
-      packages.x86_64-linux = {
-        cpx11 = nixos-generators.nixosGenerate {
-          inherit system;
-          format = "raw";
-          modules = [
-            baseConfig
-            {
-              virtualisation.diskSize = "auto";
-            }
-          ];
-        };
+      nixosConfigurations = builtins.mapAttrs mkNixosConfig servers;
+
+      packages.x86_64-linux = builtins.mapAttrs (name: _: mkImagePackage name) servers // {
+        default = self.packages.x86_64-linux.cpx11;
       };
-
-      packages.x86_64-linux.default = self.packages.x86_64-linux.cpx11;
-
-      nixosConfigurations.cpx11 = nixosSystem;
     };
 }

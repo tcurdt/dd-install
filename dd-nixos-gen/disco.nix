@@ -1,36 +1,37 @@
 { lib, ... }:
 {
   disko.devices = {
-    disk.disk1 = {
+    disk.main = {
       device = lib.mkDefault "/dev/sda";
       type = "disk";
       content = {
-        type = "table";
-        format = "msdos";
-        partitions = [
-          {
-            name = "root";
+        type = "gpt";
+        partitions = {
+          boot = {
+            size = "1M";
+            type = "EF02";  # BIOS boot partition for GRUB
+          };
+          root = {
             size = "4G";
             content = {
               type = "filesystem";
-              format = "btrfs";
-              # extraArgs = [ "-f" "-O block-group-tree" ];
-              extraArgs = [ "-f" ];
+              format = "ext4";
               mountpoint = "/";
-              mountOptions = [ "compress=zstd" "noatime" ];
+              mountOptions = [ "noatime" ];
+              extraArgs = [ "-L" "nixos" ];  # filesystem label
             };
-          }
-          {
-            name = "var-lib";
+          };
+          varlib = {
             size = "100%";
             content = {
               type = "filesystem";
               format = "ext4";
               mountpoint = "/var/lib";
               mountOptions = [ "noatime" ];
+              extraArgs = [ "-L" "varlib" ];  # filesystem label
             };
-          }
-        ];
+          };
+        };
       };
     };
   };
