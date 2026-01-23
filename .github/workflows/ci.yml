@@ -26,6 +26,7 @@ jobs:
         run: |
           cd dd-nixos-gen
           curl -fsSL https://github.com/tcurdt.keys > authorized_keys
+          git add authorized_keys
 
       - name: build nixos
         run: |
