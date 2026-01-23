@@ -6,26 +6,23 @@ SSH_KEY="ssh-ed25519 AAAA...yourkey..."
 HOSTNAME="hetzner"
 STATE_VERSION="25.11"
 
-# partition
-parted "$TARGET_DISK" -- mklabel gpt
-parted "$TARGET_DISK" -- mkpart ESP fat32 1MiB 513MiB
-parted "$TARGET_DISK" -- set 1 esp on
-parted "$TARGET_DISK" -- mkpart primary ext4 513MiB 100%
+# partition (GPT with BIOS boot partition for Hetzner)
+parted -s "$TARGET_DISK" -- mklabel gpt
+parted -s "$TARGET_DISK" -- mkpart bios 1MiB 2MiB
+parted -s "$TARGET_DISK" -- set 1 bios_grub on
+parted -s "$TARGET_DISK" -- mkpart primary ext4 2MiB 100%
 partprobe "$TARGET_DISK"
 
 # format
-mkfs.fat -F32 "${TARGET_DISK}1"
-mkfs.ext4 "${TARGET_DISK}2"
+mkfs.ext4 -F "${TARGET_DISK}2"
 
 # mount for chroot
 mount "${TARGET_DISK}2" /mnt
-mkdir -p /mnt/boot
-mount "${TARGET_DISK}1" /mnt/boot
 
-# rescue workaround
-groupadd nixbld
+# rescue workaround (ignore errors on re-run)
+groupadd nixbld || true
 for i in $(seq 1 10); do
-  useradd -g nixbld -G nixbld -M -N -r -d /var/empty -s /sbin/nologin nixbld$i
+  useradd -g nixbld -G nixbld -M -N -r -d /var/empty -s /sbin/nologin nixbld$i || true
 done
 
 # bootstrap nix
@@ -43,8 +40,8 @@ cat > /mnt/etc/nixos/configuration.nix <<EOF
 {
   imports = [ ./hardware-configuration.nix ];
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.grub.enable = true;
+  boot.loader.grub.device = "$TARGET_DISK";
 
   networking.hostName = "$HOSTNAME";
   networking.useDHCP = true;
