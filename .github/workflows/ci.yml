@@ -31,6 +31,7 @@ jobs:
         run: |
           cd dd-nixos-gen
           nix build .#${{ matrix.server }} --print-build-logs
+          find result
 
       # - name: analyze image size
       #   run: |
@@ -68,28 +69,18 @@ jobs:
       #     sudo kpartx -d $LOOP_DEV
       #     sudo losetup -d $LOOP_DEV
 
-      - name: compress image
-        run: |
-          cd dd-nixos-gen
-          ls -lh result/*.img
+      # - name: upload artifact
+      #   uses: actions/upload-artifact@v6
+      #   with:
+      #     name: nixos-${{ matrix.version }}-${{ matrix.server }}.img
+      #     path: dd-nixos-gen/result/*.img
+      #     compression-level: 2
+      #     retention-days: 7
 
-          # mkdir -p output
-          # time zstd -19 result/nixos.img \
-          #   -o output/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zst
-          # ls -lh output/*.img.zst
-
-      - name: upload artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: nixos-${{ matrix.version }}-${{ matrix.server }}.img
-          path: dd-nixos-gen/result/*.img
-          compression-level: 2
-          retention-days: 7
-
-      - name: print download link
-        run: |
-          echo "download via nightly"
-          echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zip"
+      # - name: print download link
+      #   run: |
+      #     echo "download via nightly"
+      #     echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zip"
 
   # debian:
   #   runs-on: ubuntu-latest
@@ -109,17 +100,9 @@ jobs:
 
   #     - name: build debian
   #       run: |
-  #         VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} ./dd-debian/docker.sh
-
-  #     - name: compress image
-  #       run: |
   #         cd dd-debian
-  #         ls -lh result/*.img
-
-  #         # mkdir -p output
-  #         # time zstd -19 result/debian.img \
-  #         #   -o output/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zst
-  #         # ls -lh output/*.img.zst
+  #         VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} ./docker.sh
+  #         find result
 
   #     - name: upload image
   #       uses: actions/upload-artifact@v6
