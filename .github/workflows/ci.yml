@@ -32,41 +32,41 @@ jobs:
           cd dd-nixos-gen
           nix build .#${{ matrix.server }} --print-build-logs
 
-      - name: analyze image size
-        run: |
-          cd dd-nixos-gen
+      # - name: analyze image size
+      #   run: |
+      #     cd dd-nixos-gen
 
-          echo "=== Image file ==="
-          ls -lh result/nixos.img
+      #     echo "=== Image file ==="
+      #     ls -lh result/nixos.img
 
-          echo ""
-          echo "=== Partition table ==="
-          sudo fdisk -l result/nixos.img
+      #     echo ""
+      #     echo "=== Partition table ==="
+      #     sudo fdisk -l result/nixos.img
 
-          echo ""
-          echo "=== Mounting partition ==="
-          sudo apt-get install -y kpartx
-          LOOP_DEV=$(sudo losetup -f --show result/nixos.img)
-          echo "Loop device: $LOOP_DEV"
+      #     echo ""
+      #     echo "=== Mounting partition ==="
+      #     sudo apt-get install -y kpartx
+      #     LOOP_DEV=$(sudo losetup -f --show result/nixos.img)
+      #     echo "Loop device: $LOOP_DEV"
 
-          sudo kpartx -av $LOOP_DEV
-          sleep 1
+      #     sudo kpartx -av $LOOP_DEV
+      #     sleep 1
 
-          PART=$(sudo kpartx -l $LOOP_DEV | head -1 | awk '{print $1}')
-          echo "Partition: /dev/mapper/$PART"
+      #     PART=$(sudo kpartx -l $LOOP_DEV | head -1 | awk '{print $1}')
+      #     echo "Partition: /dev/mapper/$PART"
 
-          mkdir -p /tmp/mnt
-          sudo mount -o ro /dev/mapper/$PART /tmp/mnt
+      #     mkdir -p /tmp/mnt
+      #     sudo mount -o ro /dev/mapper/$PART /tmp/mnt
 
-          echo ""
-          echo "=== Nix store size ==="
-          sudo du -sh /tmp/mnt/nix/store 2>/dev/null || echo "No nix store found"
+      #     echo ""
+      #     echo "=== Nix store size ==="
+      #     sudo du -sh /tmp/mnt/nix/store 2>/dev/null || echo "No nix store found"
 
-          sudo du -sh /tmp/mnt/nix/store/* | sort -rh | head -30
+      #     sudo du -sh /tmp/mnt/nix/store/* | sort -rh | head -30
 
-          sudo umount /tmp/mnt
-          sudo kpartx -d $LOOP_DEV
-          sudo losetup -d $LOOP_DEV
+      #     sudo umount /tmp/mnt
+      #     sudo kpartx -d $LOOP_DEV
+      #     sudo losetup -d $LOOP_DEV
 
       - name: compress image
         run: |
