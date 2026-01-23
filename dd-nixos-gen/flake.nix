@@ -47,13 +47,15 @@
         #   "sd_mod" "sr_mod" "ata_piix"
         # ];
 
-        boot.initrd.availableKernelModules = [
-          "ata_piix"
-          "uhci_hcd"
-          "xen_blkfront"
-          "vmw_pvscsi"
-        ];
-        boot.initrd.kernelModules = [ "nvme" ];
+        boot.initrd.availableKernelModules = [ "ahci" "virtio_pci" "virtio_scsi" "sd_mod" "sr_mod" ];
+
+        # boot.initrd.availableKernelModules = [
+        #   "ata_piix"
+        #   "uhci_hcd"
+        #   "xen_blkfront"
+        #   "vmw_pvscsi"
+        # ];
+        # boot.initrd.kernelModules = [ "nvme" ];
 
 
         fileSystems."/" = lib.mkForce {
