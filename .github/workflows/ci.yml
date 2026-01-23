@@ -12,8 +12,6 @@ jobs:
     strategy:
       matrix:
         version: [25.11]
-        boot: [bios]
-        arch: [amd]
         server: [cpx11]
     steps:
       - name: checkout
@@ -53,6 +51,7 @@ jobs:
     strategy:
       matrix:
         version: [trixie]
+        server: [cpx11]
         boot: [bios]
         arch: [amd]
     steps:
@@ -74,7 +73,7 @@ jobs:
       - name: upload image
         uses: actions/upload-artifact@v6
         with:
-          name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch}}.img
+          name: debian-${{ matrix.version }}-${{ matrix.server }}.img
           path: dd-debian/result/*.img
           compression-level: 2
           retention-days: 7
@@ -82,4 +81,4 @@ jobs:
       - name: print download link
         run: |
           echo "download via nightly.link"
-          echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zip"
+          echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/debian-${{ matrix.version }}-${{ matrix.server }}.img.zip"
