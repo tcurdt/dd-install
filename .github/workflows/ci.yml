@@ -25,7 +25,7 @@ jobs:
       - name: download ssh pub
         run: |
           cd dd-nixos-gen
-          curl -fsSL https://github.com/tcurdt.keys > dd-nixos-gen/authorized_keys
+          curl -fsSL https://github.com/tcurdt.keys > authorized_keys
 
       - name: build nixos
         run: |
