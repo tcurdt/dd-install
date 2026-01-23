@@ -62,9 +62,8 @@ jobs:
 
       - name: download ssh pub
         run: |
-          mkdir -p ~/.ssh
+          cd dd-debian
           curl -fsSL https://github.com/tcurdt.keys > authorized_keys
-          git add authorized_keys
 
       - name: build debian
         run: |
@@ -99,9 +98,8 @@ jobs:
 
       - name: download ssh pub
         run: |
-          mkdir -p ~/.ssh
+          cd dd-alpine
           curl -fsSL https://github.com/tcurdt.keys > authorized_keys
-          git add authorized_keys
 
       - name: build alpine
         run: |

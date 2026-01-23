@@ -87,11 +87,11 @@ echo "[1/4] deploying image to disk..."
 if echo "$IMAGE" | grep -qE '^https?://'; then
   echo "downloading and decompressing from URL..."
 
-  if echo "$IMAGE" | grep -qE 'github\.com'; then
+  if echo "$IMAGE" | grep -qE 'nightly\.link'; then
     # github artifact downloads are zip files with trailing metadata that
     # causes funzip to exit non-zero even though the data extracted successfully
     set +o pipefail
-    curl -fsSL "$IMAGE" | funzip | zstd -d | dd of="$TARGET_DISK" bs=4M
+    curl -fsSL "$IMAGE" | funzip | dd of="$TARGET_DISK" bs=4M
     set -o pipefail
   elif echo "$IMAGE" | grep -qE '\.zip$'; then
     curl -fsSL "$IMAGE" | funzip | dd of="$TARGET_DISK" bs=4M

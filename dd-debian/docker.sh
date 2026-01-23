@@ -14,6 +14,12 @@ OUTPUT_DIR="${OUTPUT_DIR:-${DIR}/result}"
 
 set -Euo pipefail
 
+if [ ! -f "$SSH_PUBKEY_FILE" ]; then
+  echo "Error: SSH public key file not found: $SSH_PUBKEY_FILE"
+  echo "Please provide a valid SSH public key file via SSH_PUBKEY_FILE environment variable"
+  exit 1
+fi
+
 mkdir -p "$OUTPUT_DIR"
 
 docker build \
