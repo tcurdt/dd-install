@@ -82,3 +82,40 @@ jobs:
         run: |
           echo "download via nightly.link"
           echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/debian-${{ matrix.version }}-${{ matrix.server }}.img.zip"
+
+  alpine:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [3.21]
+        server: [cpx11]
+        boot: [bios]
+        arch: [x86_64]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+
+      - name: download ssh pub
+        run: |
+          mkdir -p ~/.ssh
+          curl -fsSL https://github.com/tcurdt.keys > authorized_keys
+          git add authorized_keys
+
+      - name: build alpine
+        run: |
+          cd dd-alpine
+          VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} SSH_PUBKEY_FILE=authorized_keys ./docker.sh
+          find result
+
+      - name: upload image
+        uses: actions/upload-artifact@v6
+        with:
+          name: alpine-${{ matrix.version }}-${{ matrix.server }}.img
+          path: dd-alpine/result/*.img
+          compression-level: 2
+          retention-days: 7
+
+      - name: print download link
+        run: |
+          echo "download via nightly.link"
+          echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/alpine-${{ matrix.version }}-${{ matrix.server }}.img.zip"
