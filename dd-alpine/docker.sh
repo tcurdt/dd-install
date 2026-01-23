@@ -14,6 +14,11 @@ OUTPUT_DIR="${OUTPUT_DIR:-${DIR}/result}"
 
 set -Euo pipefail
 
+# make it an absolute path
+if [[ "$SSH_PUBKEY_FILE" != /* ]]; then
+  SSH_PUBKEY_FILE="$(pwd)/$SSH_PUBKEY_FILE"
+fi
+
 if [ ! -f "$SSH_PUBKEY_FILE" ]; then
   echo "Error: SSH public key file not found: $SSH_PUBKEY_FILE"
   echo "Please provide a valid SSH public key file via SSH_PUBKEY_FILE environment variable"
