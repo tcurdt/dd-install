@@ -86,6 +86,11 @@ jobs:
           compression-level: 2
           retention-days: 7
 
+      - name: print download link
+        run: |
+          echo "download via nightly"
+          echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zip"
+
   debian:
     runs-on: ubuntu-latest
     strategy:
@@ -123,3 +128,8 @@ jobs:
           path: dd-debian/result/*.img
           compression-level: 2
           retention-days: 7
+
+      - name: print download link
+        run: |
+          echo "download via nightly.link"
+          echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.arch }}.img.zip"
