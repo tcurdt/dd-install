@@ -53,10 +53,6 @@
             datasource_list = [ "Hetzner" "None" ];
             disable_root = false;
             users = [];
-            bootcmd = [
-              [ "sh" "-c" "growpart /dev/sda 3 || true" ]
-              [ "sh" "-c" "resize2fs /dev/sda3 || true" ]
-            ];
           };
         };
 

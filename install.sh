@@ -49,6 +49,8 @@ assert_command zstd
 assert_command chroot
 assert_command funzip
 assert_command pv
+assert_command parted
+assert_command resize2fs
 
 # auto-detect target disk if not specified
 if [ -z "$TARGET_DISK" ]; then
@@ -109,14 +111,28 @@ else
 fi
 
 echo ""
-echo "[2/4] syncing disk"
+echo "[2/5] syncing disk"
 sync
 
 echo ""
-echo "[3/4] setting up deployed system"
+echo "[3/5] expanding partitions"
 
 partprobe "$TARGET_DISK" || true
 sleep 2
+
+# grow partition 3 (/var/lib) to use all available space
+# growpart "$TARGET_DISK" 3 || true
+# sgdisk -e "$TARGET_DISK"
+parted -s -f "$TARGET_DISK" print
+parted -s -f "$TARGET_DISK" resizepart 3 100%
+
+# resize the ext4 filesystem on partition 3
+VARLIB_PART="${TARGET_DISK}3"
+e2fsck -f -y "$VARLIB_PART" || true
+resize2fs "$VARLIB_PART" || true
+
+echo ""
+echo "[4/5] setting up deployed system"
 
 # mount the root partition
 MOUNTED=0
@@ -168,7 +184,7 @@ else
 fi
 
 echo ""
-echo "[4/4] installation complete"
+echo "[5/5] installation complete"
 echo "======================================"
 echo ""
 echo "now reboot and login"
