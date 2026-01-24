@@ -48,6 +48,7 @@ assert_command curl
 assert_command zstd
 assert_command chroot
 assert_command funzip
+assert_command pv
 
 # auto-detect target disk if not specified
 if [ -z "$TARGET_DISK" ]; then
@@ -91,14 +92,14 @@ if echo "$IMAGE" | grep -qE '^https?://'; then
     # github artifact downloads are zip files with trailing metadata that
     # causes funzip to exit non-zero even though the data extracted successfully
     set +o pipefail
-    curl -fsSL "$IMAGE" | funzip | dd of="$TARGET_DISK" bs=4M
+    curl -fsSL "$IMAGE" | pv | funzip | dd of="$TARGET_DISK" bs=4M
     set -o pipefail
   elif echo "$IMAGE" | grep -qE '\.zip$'; then
-    curl -fsSL "$IMAGE" | funzip | dd of="$TARGET_DISK" bs=4M
+    curl -fsSL "$IMAGE" | pv | funzip | dd of="$TARGET_DISK" bs=4M
   elif echo "$IMAGE" | grep -qE '\.zst$'; then
-    curl -fsSL "$IMAGE" | zstd -d | dd of="$TARGET_DISK" bs=4M
+    curl -fsSL "$IMAGE" | pv | zstd -d | dd of="$TARGET_DISK" bs=4M
   else
-    curl -fsSL "$IMAGE" | dd of="$TARGET_DISK" bs=4M
+    curl -fsSL "$IMAGE" | pv | dd of="$TARGET_DISK" bs=4M
   fi
 else
   # local
@@ -155,14 +156,14 @@ if [ "$MOUNTED" = "1" ]; then
 
   if [ -d /mnt/target/etc/ssh ]; then
     echo "regenerating SSH host keys..."
-    rm -f /mnt/target/etc/ssh/ssh_host_*
+    rm -f /mnt/target/etc/ssh/ssh_host_* || true
 
     # mount proc/sys/dev for chroot
     mount -t proc proc /mnt/target/proc 2>/dev/null || true
     mount -t sysfs sysfs /mnt/target/sys 2>/dev/null || true
     mount -o bind /dev /mnt/target/dev 2>/dev/null || true
 
-    chroot /mnt/target /bin/sh -c "ssh-keygen -A" 2>/dev/null
+    chroot /mnt/target /bin/sh -c "ssh-keygen -A" 2>/dev/null || true
 
     umount /mnt/target/dev 2>/dev/null || true
     umount /mnt/target/sys 2>/dev/null || true
