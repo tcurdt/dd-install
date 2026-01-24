@@ -199,6 +199,8 @@ growpart:
   mode: auto
   devices:
     - /var/lib
+runcmd:
+  - resize2fs /dev/sda3
 EOF
 
 # Add SSH public key if provided

@@ -129,6 +129,7 @@ chroot /mnt apk add --no-cache \
     grub \
     grub-bios \
     btrfs-progs \
+    e2fsprogs-extra \
     openssh \
     curl \
     ca-certificates \
@@ -204,6 +205,8 @@ growpart:
   mode: auto
   devices:
     - /var/lib
+runcmd:
+  - resize2fs /dev/sda3
 EOF
 
 # add SSH public key if provided

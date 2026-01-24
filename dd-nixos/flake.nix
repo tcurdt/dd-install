@@ -57,6 +57,7 @@
               mode = "auto";
               devices = [ "/var/lib" ];
             };
+            runcmd = [ "resize2fs /dev/sda3" ];
           };
         };
 
