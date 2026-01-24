@@ -73,20 +73,11 @@ if [ ! -b "$TARGET_DISK" ]; then
   exit 1
 fi
 
-echo "WARNING: wiping $TARGET_DISK!"
-echo ""
-echo "image:  $IMAGE"
-echo "target: $TARGET_DISK"
-echo ""
-echo "Ctrl-C within 5 seconds to cancel..."
-sleep 5
-echo ""
-
-echo "[1/4] deploying image to disk..."
+echo "[1/4] deploying $IMAGE to $TARGET_DISK"
 
 # check if image is a URL or local file
 if echo "$IMAGE" | grep -qE '^https?://'; then
-  echo "downloading and decompressing from URL..."
+  echo "downloading and decompressing from URL"
 
   if echo "$IMAGE" | grep -qE 'nightly\.link'; then
     # github artifact downloads are zip files with trailing metadata that
@@ -118,14 +109,13 @@ else
 fi
 
 echo ""
-echo "[2/4] syncing disk..."
+echo "[2/4] syncing disk"
 sync
 
 echo ""
-echo "[3/4] setting up deployed system..."
+echo "[3/4] setting up deployed system"
 
 partprobe "$TARGET_DISK" || true
-
 sleep 2
 
 # mount the root partition
@@ -152,13 +142,13 @@ for part in "${TARGET_DISK}2" "${TARGET_DISK}p2"; do
 done
 
 if [ "$MOUNTED" = "1" ]; then
-  echo "root partition mounted at /mnt/target"
+  echo "root partition mounted"
 
   if [ -d /mnt/target/etc/ssh ]; then
-    echo "regenerating SSH host keys..."
+    echo "regenerating SSH host keys"
     rm -f /mnt/target/etc/ssh/ssh_host_* || true
 
-    # mount proc/sys/dev for chroot
+    # mount for chroot
     mount -t proc proc /mnt/target/proc 2>/dev/null || true
     mount -t sysfs sysfs /mnt/target/sys 2>/dev/null || true
     mount -o bind /dev /mnt/target/dev 2>/dev/null || true
