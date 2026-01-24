@@ -75,7 +75,11 @@ if [ ! -b "$TARGET_DISK" ]; then
   exit 1
 fi
 
-echo "[1/4] deploying $IMAGE to $TARGET_DISK"
+# generate short hash for image identification
+IMAGE_HASH=$(echo "$IMAGE" | md5sum | cut -c1-8)
+echo "image hash: $IMAGE_HASH"
+
+echo "[1/5] deploying $IMAGE to $TARGET_DISK"
 
 # check if image is a URL or local file
 if echo "$IMAGE" | grep -qE '^https?://'; then
@@ -159,6 +163,10 @@ done
 
 if [ "$MOUNTED" = "1" ]; then
   echo "root partition mounted"
+
+  # write image hash for identification
+  echo "$IMAGE_HASH" > /mnt/target/etc/dd-image-hash
+  echo "wrote image hash to /etc/dd-image-hash"
 
   if [ -d /mnt/target/etc/ssh ]; then
     echo "regenerating SSH host keys"
