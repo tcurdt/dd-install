@@ -84,6 +84,7 @@
         environment.systemPackages = with pkgs; [
           nano
           curl
+          e2fsprogs
         ];
         environment.stub-ld.enable = false;
         fonts.fontconfig.enable = false;
