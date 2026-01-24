@@ -183,6 +183,7 @@ chroot /mnt ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 
 # set root password (will be disabled via SSH config)
 echo "root:secret" | chroot /mnt chpasswd
+chroot /mnt passwd -u root
 
 # create note about SSH keys requirement
 cat > /mnt/root/README << 'EOF'
@@ -198,6 +199,11 @@ mkdir -p /mnt/etc/cloud/cloud.cfg.d
 cat > /mnt/etc/cloud/cloud.cfg.d/99_hetzner.cfg << 'EOF'
 datasource_list: [ Hetzner, None ]
 disable_root: false
+users: []
+growpart:
+  mode: auto
+  devices:
+    - /var/lib
 EOF
 
 # add SSH public key if provided

@@ -49,7 +49,15 @@
         services.cloud-init = {
           enable = true;
           network.enable = true;
-          settings.datasource_list = [ "Hetzner" "None" ];
+          settings = {
+            datasource_list = [ "Hetzner" "None" ];
+            disable_root = false;
+            users = [];
+            growpart = {
+              mode = "auto";
+              devices = [ "/var/lib" ];
+            };
+          };
         };
 
         time.timeZone = "UTC";
