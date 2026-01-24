@@ -121,7 +121,8 @@ chroot /mnt apt-get $APT_OPTIONS --yes install \
     iproute2 \
     iputils-ping \
     ca-certificates \
-    btrfs-progs
+    btrfs-progs \
+    cloud-init
 
 # Set hostname
 echo "server" > /mnt/etc/hostname
@@ -186,6 +187,12 @@ EOF
 
 # Remove SSH host keys (will be regenerated on deployment)
 rm -f /mnt/etc/ssh/ssh_host_*
+
+# Configure cloud-init for Hetzner
+mkdir -p /mnt/etc/cloud/cloud.cfg.d
+cat > /mnt/etc/cloud/cloud.cfg.d/99_hetzner.cfg << 'EOF'
+datasource_list: [ Hetzner, None ]
+EOF
 
 # Add SSH public key if provided
 echo "Adding SSH public key to root authorized_keys..."

@@ -45,6 +45,13 @@
           };
         };
 
+        # Cloud-init for Hetzner
+        services.cloud-init = {
+          enable = true;
+          network.enable = true;
+          settings.datasource_list = [ "Hetzner" "None" ];
+        };
+
         time.timeZone = "UTC";
 
         # keys for initial boot

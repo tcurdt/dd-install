@@ -133,7 +133,8 @@ chroot /mnt apk add --no-cache \
     curl \
     ca-certificates \
     openrc \
-    mkinitfs
+    mkinitfs \
+    cloud-init
 
 # Set hostname
 echo "server" > /mnt/etc/hostname
@@ -192,6 +193,12 @@ EOF
 # Remove SSH host keys (will be regenerated on deployment)
 rm -f /mnt/etc/ssh/ssh_host_*
 
+# Configure cloud-init for Hetzner
+mkdir -p /mnt/etc/cloud/cloud.cfg.d
+cat > /mnt/etc/cloud/cloud.cfg.d/99_hetzner.cfg << 'EOF'
+datasource_list: [ Hetzner, None ]
+EOF
+
 # Add SSH public key if provided
 echo "Adding SSH public key to root authorized_keys..."
 mkdir -p /mnt/root/.ssh
@@ -245,6 +252,10 @@ chroot /mnt rc-update add btrfs-scan boot  # Critical for btrfs root!
 
 # default runlevel
 chroot /mnt rc-update add sshd default
+chroot /mnt rc-update add cloud-init-local default
+chroot /mnt rc-update add cloud-init default
+chroot /mnt rc-update add cloud-config default
+chroot /mnt rc-update add cloud-final default
 
 # shutdown runlevel
 chroot /mnt rc-update add mount-ro shutdown
