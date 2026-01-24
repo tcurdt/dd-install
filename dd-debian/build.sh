@@ -195,12 +195,9 @@ cat > /mnt/etc/cloud/cloud.cfg.d/99_hetzner.cfg << 'EOF'
 datasource_list: [ Hetzner, None ]
 disable_root: false
 users: []
-growpart:
-  mode: auto
-  devices:
-    - /var/lib
-runcmd:
-  - resize2fs /dev/sda3
+bootcmd:
+  - [ sh, -c, "growpart /dev/sda 3 || true" ]
+  - [ sh, -c, "resize2fs /dev/sda3 || true" ]
 EOF
 
 # Add SSH public key if provided
