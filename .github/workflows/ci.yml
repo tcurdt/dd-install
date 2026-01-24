@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         version: [25.11]
-        server: [cpx11]
+        server: [cpx]
         boot: [bios]
         arch: [amd]
     steps:
@@ -53,7 +53,7 @@ jobs:
     strategy:
       matrix:
         version: [trixie]
-        server: [cpx11]
+        server: [cpx]
         boot: [bios]
         arch: [amd]
     steps:
@@ -89,7 +89,7 @@ jobs:
     strategy:
       matrix:
         version: [3.21]
-        server: [cpx11]
+        server: [cpx]
         boot: [bios]
         arch: [x86_64]
     steps:
