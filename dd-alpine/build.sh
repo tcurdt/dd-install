@@ -197,6 +197,7 @@ rm -f /mnt/etc/ssh/ssh_host_*
 mkdir -p /mnt/etc/cloud/cloud.cfg.d
 cat > /mnt/etc/cloud/cloud.cfg.d/99_hetzner.cfg << 'EOF'
 datasource_list: [ Hetzner, None ]
+disable_root: false
 EOF
 
 # add SSH public key if provided
@@ -251,10 +252,10 @@ chroot /mnt rc-update add btrfs-scan boot  # critical for btrfs root!
 
 # default runlevel
 chroot /mnt rc-update add sshd default
-# chroot /mnt rc-update add cloud-init-local default
-# chroot /mnt rc-update add cloud-init default
-# chroot /mnt rc-update add cloud-config default
-# chroot /mnt rc-update add cloud-final default
+chroot /mnt rc-update add cloud-init-local boot
+chroot /mnt rc-update add cloud-init default
+chroot /mnt rc-update add cloud-config default
+chroot /mnt rc-update add cloud-final default
 
 # shutdown runlevel
 chroot /mnt rc-update add mount-ro shutdown

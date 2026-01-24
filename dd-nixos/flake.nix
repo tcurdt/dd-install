@@ -99,7 +99,7 @@
 
       # Server type configurations (Hetzner cloud server types)
       servers = {
-        cpx11 = {
+        cpx = {
           # Add server-type-specific overrides here (disk size, etc.)
         };
         # Add more server types here:
@@ -124,7 +124,7 @@
       nixosConfigurations = builtins.mapAttrs mkNixosConfig servers;
 
       packages.x86_64-linux = builtins.mapAttrs (name: _: mkImagePackage name) servers // {
-        default = self.packages.x86_64-linux.cpx11;
+        default = self.packages.x86_64-linux.cpx;
       };
     };
 }

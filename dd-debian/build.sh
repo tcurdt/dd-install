@@ -192,6 +192,7 @@ rm -f /mnt/etc/ssh/ssh_host_*
 mkdir -p /mnt/etc/cloud/cloud.cfg.d
 cat > /mnt/etc/cloud/cloud.cfg.d/99_hetzner.cfg << 'EOF'
 datasource_list: [ Hetzner, None ]
+disable_root: false
 EOF
 
 # Add SSH public key if provided
