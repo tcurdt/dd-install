@@ -13,7 +13,7 @@
     let
       system = "x86_64-linux";
 
-      # Base configuration shared by all server types
+      # configuration shared by all server types
       baseConfig = { config, pkgs, lib, modulesPath, ... }: {
         imports = [
           "${modulesPath}/profiles/minimal.nix"
@@ -32,7 +32,7 @@
 
         # fileSystems are defined by disko in disco.nix
 
-        networking.hostName = "server";  # Generic, can be changed post-install
+        networking.hostName = "server";  # generic, will be changed post-install
         networking.useDHCP = true;
         networking.firewall.enable = true;
         networking.firewall.allowedTCPPorts = [ 22 ];
@@ -45,7 +45,7 @@
           };
         };
 
-        # Cloud-init for Hetzner
+        # cloud-init for Hetzner
         services.cloud-init = {
           enable = true;
           network.enable = true;
@@ -102,26 +102,23 @@
         system.stateVersion = "25.11";
       };
 
-      # Server type configurations (Hetzner cloud server types)
+      # server type configurations (Hetzner cloud server types)
       servers = {
         cpx = {
-          # Add server-type-specific overrides here (disk size, etc.)
+          # add server-type-specific overrides here (disk size, etc.)
         };
-        # Add more server types here:
-        # cpx21 = { };
-        # cpx31 = { };
       };
 
-      # Generate nixosConfigurations for each server type
+      # generate nixosConfigurations for each server type
       mkNixosConfig = name: cfg: nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
           baseConfig
-          # Add server-type-specific modules here if needed
+          # add server-type-specific modules here if needed
         ];
       };
 
-      # Generate packages (disk images) for each server
+      # generate packages (disk images) for each server
       mkImagePackage = name: self.nixosConfigurations.${name}.config.system.build.diskoImages;
 
     in

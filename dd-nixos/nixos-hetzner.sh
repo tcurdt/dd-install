@@ -1,4 +1,5 @@
 #!/bin/bash
+# fresh install of nixos in rescue mode
 set -euxo pipefail
 
 TARGET_DISK="/dev/sda"
