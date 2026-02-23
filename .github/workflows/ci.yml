@@ -4,7 +4,12 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: '0 1 * * 0'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   nixos:
@@ -44,11 +49,6 @@ jobs:
           compression-level: 2
           retention-days: 7
 
-      - name: print download link
-        run: |
-          echo "download via nightly"
-          echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/nixos-${{ matrix.version }}-${{ matrix.server }}.img.zip"
-
   debian:
     runs-on: ubuntu-latest
     strategy:
@@ -80,11 +80,6 @@ jobs:
           path: dd-debian/result/*.img
           compression-level: 2
           retention-days: 7
-
-      - name: print download link
-        run: |
-          echo "download via nightly.link"
-          echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/debian-${{ matrix.version }}-${{ matrix.server }}.img.zip"
 
   alpine:
     runs-on: ubuntu-latest
@@ -118,7 +113,47 @@ jobs:
           compression-level: 2
           retention-days: 7
 
-      - name: print download link
+  release:
+    needs: [nixos, debian, alpine]
+    runs-on: ubuntu-latest
+    steps:
+      - name: download artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+
+      - name: prepare release assets
         run: |
-          echo "download via nightly.link"
-          echo "https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/alpine-${{ matrix.version }}-${{ matrix.server }}.img.zip"
+          mkdir -p release
+          ls -lhR artifacts
+          for dir in artifacts/*/; do
+            name=$(basename "$dir")
+            find "$dir" -type f | while read -r file; do
+              cp "$file" "release/${name}"
+            done
+          done
+          ls -lh release
+
+      - name: create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="build-$(date -u +%Y%m%d-%H%M%S)"
+
+          gh release create "$tag" release/* \
+            --title "Latest Build" \
+            --notes "Built from ${{ github.sha }}"
+
+          # delete older releases, keep the one we just created
+          gh release list --json tagName --jq '.[].tagName' | while read -r old_tag; do
+            if [ "$old_tag" != "$tag" ]; then
+              gh release delete "$old_tag" --yes --cleanup-tag || true
+            fi
+          done
+
+          echo "## Download URLs" >> "$GITHUB_STEP_SUMMARY"
+          for file in release/*; do
+            name=$(basename "$file")
+            echo "- https://github.com/${{ github.repository }}/releases/latest/download/${name}" >> "$GITHUB_STEP_SUMMARY"
+          done
