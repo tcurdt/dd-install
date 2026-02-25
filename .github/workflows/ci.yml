@@ -39,7 +39,8 @@ jobs:
         run: |
           cd dd-nixos
           sed -i 's|nixpkgs/nixos-25.11|nixpkgs/nixos-${{ matrix.version }}|g' flake.nix
-          BOOT=${{ matrix.boot }} nix build .#${{ matrix.server }} --print-build-logs --impure
+          sed -i 's|boot = "bios"|boot = "${{ matrix.boot }}"|g' flake.nix
+          nix build .#${{ matrix.server }} --print-build-logs
           ls -lh result
 
       - name: upload artifact

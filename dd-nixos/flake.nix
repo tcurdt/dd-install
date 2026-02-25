@@ -13,7 +13,7 @@
     let
       system = "x86_64-linux";
 
-      boot = if builtins.getEnv "BOOT" != "" then builtins.getEnv "BOOT" else "bios";
+      boot = "bios"; # overridden via sed in CI
 
       # configuration shared by all server types
       baseConfig = { config, pkgs, lib, modulesPath, ... }: {
