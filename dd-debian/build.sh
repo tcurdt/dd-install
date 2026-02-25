@@ -44,13 +44,21 @@ echo "[2/9] Setting up loop device..."
 LOOP_DEV=$(losetup -f --show "$IMAGE_PATH")
 echo "Loop device: $LOOP_DEV"
 
-# Partition the disk (GPT with BIOS boot partition)
+# Partition the disk
 echo "[3/9] Partitioning disk..."
 parted -s "$LOOP_DEV" -- mklabel gpt
-parted -s "$LOOP_DEV" -- mkpart primary 1MiB 3MiB          # BIOS boot partition
-parted -s "$LOOP_DEV" -- mkpart primary btrfs 3MiB 4GiB    # root (smaller for 5G disk)
-parted -s "$LOOP_DEV" -- mkpart primary ext4 4GiB 100%     # /var/lib
-parted -s "$LOOP_DEV" -- set 1 bios_grub on
+if [ "$BOOT" = "efi" ]; then
+    parted -s "$LOOP_DEV" -- mkpart primary fat32 1MiB 257MiB   # EFI System Partition
+    parted -s "$LOOP_DEV" -- mkpart primary btrfs 257MiB 4GiB   # root
+    parted -s "$LOOP_DEV" -- mkpart primary ext4 4GiB 100%      # /var/lib
+    parted -s "$LOOP_DEV" -- set 1 esp on
+    parted -s "$LOOP_DEV" -- set 1 boot on
+else
+    parted -s "$LOOP_DEV" -- mkpart primary 1MiB 3MiB           # BIOS boot partition
+    parted -s "$LOOP_DEV" -- mkpart primary btrfs 3MiB 4GiB     # root
+    parted -s "$LOOP_DEV" -- mkpart primary ext4 4GiB 100%      # /var/lib
+    parted -s "$LOOP_DEV" -- set 1 bios_grub on
+fi
 
 # Reload partition table and create device mappings
 echo "[4/9] Creating partition mappings..."
@@ -65,12 +73,19 @@ PART2="/dev/mapper/$(echo "$PART_MAPPINGS" | sed -n 2p)"
 PART3="/dev/mapper/$(echo "$PART_MAPPINGS" | sed -n 3p)"
 
 echo "Partitions:"
-echo "  BIOS boot: $PART1"
+if [ "$BOOT" = "efi" ]; then
+    echo "  ESP:       $PART1"
+else
+    echo "  BIOS boot: $PART1"
+fi
 echo "  Root:      $PART2"
 echo "  /var/lib:  $PART3"
 
 # Format partitions
 echo "[5/9] Formatting partitions..."
+if [ "$BOOT" = "efi" ]; then
+    mkfs.fat -F 32 "$PART1"
+fi
 mkfs.btrfs -f "$PART2"
 mkfs.ext4 -F "$PART3"
 
@@ -87,6 +102,10 @@ umount /mnt
 mount -o subvol=@rootfs "$PART2" /mnt
 mkdir -p /mnt/var/lib
 mount "$PART3" /mnt/var/lib
+if [ "$BOOT" = "efi" ]; then
+    mkdir -p /mnt/boot/efi
+    mount "$PART1" /mnt/boot/efi
+fi
 
 # Install minimal Debian system
 echo "[7/9] Installing minimal Debian system (this will take a few minutes)..."
@@ -112,17 +131,26 @@ export DEBIAN_FRONTEND=noninteractive
 export APT_OPTIONS="-oAPT::Install-Recommends=false -oAPT::Install-Suggests=false -oAcquire::Languages=none"
 
 # Install essential packages
+if [ "$BOOT" = "efi" ]; then
+    GRUB_PKG="grub-efi-amd64"
+    EXTRA_PKGS="dosfstools"
+else
+    GRUB_PKG="grub-pc"
+    EXTRA_PKGS=""
+fi
+
 chroot /mnt apt-get $APT_OPTIONS update
 chroot /mnt apt-get $APT_OPTIONS --yes install \
     linux-image-"$ARCH_BITS" \
-    grub-pc \
+    "$GRUB_PKG" \
     openssh-server \
     curl \
     iproute2 \
     iputils-ping \
     ca-certificates \
     btrfs-progs \
-    cloud-init
+    cloud-init \
+    $EXTRA_PKGS
 
 # Set hostname
 echo "server" > /mnt/etc/hostname
@@ -209,10 +237,19 @@ echo "Generating fstab with UUIDs..."
 ROOT_UUID=$(blkid -s UUID -o value "$PART2")
 VARLIB_UUID=$(blkid -s UUID -o value "$PART3")
 
-cat > /mnt/etc/fstab << EOF
+if [ "$BOOT" = "efi" ]; then
+    ESP_UUID=$(blkid -s UUID -o value "$PART1")
+    cat > /mnt/etc/fstab << EOF
+UUID=$ROOT_UUID   /          btrfs  subvol=@rootfs,defaults,noatime  0 1
+UUID=$VARLIB_UUID /var/lib   ext4   defaults,noatime                 0 2
+UUID=$ESP_UUID    /boot/efi  vfat   defaults                         0 0
+EOF
+else
+    cat > /mnt/etc/fstab << EOF
 UUID=$ROOT_UUID   /         btrfs  subvol=@rootfs,defaults,noatime  0 1
 UUID=$VARLIB_UUID /var/lib  ext4   defaults,noatime                 0 2
 EOF
+fi
 
 # Install GRUB
 echo "[9/9] Installing GRUB bootloader..."
@@ -228,8 +265,12 @@ echo 'GRUB_TERMINAL="console serial"' >> /mnt/etc/default/grub
 echo 'GRUB_SERIAL_COMMAND="serial --unit=0 --speed=115200"' >> /mnt/etc/default/grub
 echo "GRUB_CMDLINE_LINUX=\"console=tty0 console=ttyS0,115200 root=UUID=$ROOT_UUID rootflags=subvol=@rootfs\"" >> /mnt/etc/default/grub
 
-# Install grub to the loop device
-chroot /mnt grub-install --target=i386-pc "$LOOP_DEV"
+# Install grub
+if [ "$BOOT" = "efi" ]; then
+    chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable --no-nvram
+else
+    chroot /mnt grub-install --target=i386-pc "$LOOP_DEV"
+fi
 
 # Update initramfs
 chroot /mnt update-initramfs -u -k all
@@ -252,6 +293,7 @@ umount /mnt/dev/pts 2>/dev/null || true
 umount /mnt/dev 2>/dev/null || true
 umount /mnt/sys 2>/dev/null || true
 umount /mnt/proc 2>/dev/null || true
+umount /mnt/boot/efi 2>/dev/null || true
 umount /mnt/var/lib 2>/dev/null || true
 umount /mnt 2>/dev/null || true
 

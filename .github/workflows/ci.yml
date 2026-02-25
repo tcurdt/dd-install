@@ -18,7 +18,8 @@ jobs:
       matrix:
         version: [25.11]
         server: [cpx]
-        boot: [bios]
+        # boot: [bios, efi]
+        boot: [efi]
         arch: [amd]
     steps:
       - name: checkout
@@ -38,13 +39,13 @@ jobs:
         run: |
           cd dd-nixos
           sed -i 's|nixpkgs/nixos-25.11|nixpkgs/nixos-${{ matrix.version }}|g' flake.nix
-          nix build .#${{ matrix.server }} --print-build-logs
+          BOOT=${{ matrix.boot }} nix build .#${{ matrix.server }} --print-build-logs --impure
           ls -lh result
 
       - name: upload artifact
         uses: actions/upload-artifact@v6
         with:
-          name: nixos-${{ matrix.version }}-${{ matrix.server }}.img
+          name: nixos-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}.img
           path: dd-nixos/result
           compression-level: 2
           retention-days: 7
@@ -55,7 +56,8 @@ jobs:
       matrix:
         version: [trixie]
         server: [cpx]
-        boot: [bios]
+        # boot: [bios, efi]
+        boot: [efi]
         arch: [amd]
     steps:
       - name: checkout
@@ -76,7 +78,7 @@ jobs:
       - name: upload image
         uses: actions/upload-artifact@v6
         with:
-          name: debian-${{ matrix.version }}-${{ matrix.server }}.img
+          name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}.img
           path: dd-debian/result/*.img
           compression-level: 2
           retention-days: 7
@@ -87,7 +89,8 @@ jobs:
       matrix:
         version: [3.21]
         server: [cpx]
-        boot: [bios]
+        # boot: [bios, efi]
+        boot: [efi]
         arch: [x86_64]
     steps:
       - name: checkout
@@ -108,7 +111,7 @@ jobs:
       - name: upload image
         uses: actions/upload-artifact@v6
         with:
-          name: alpine-${{ matrix.version }}-${{ matrix.server }}.img
+          name: alpine-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}.img
           path: dd-alpine/result/*.img
           compression-level: 2
           retention-days: 7

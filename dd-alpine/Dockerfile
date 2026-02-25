@@ -9,6 +9,7 @@ RUN apk add --no-cache \
   dosfstools \
   grub \
   grub-bios \
+  grub-efi \
   multipath-tools \
   qemu-img \
   zstd \

@@ -41,13 +41,21 @@ echo "[2/10] Setting up loop device..."
 LOOP_DEV=$(losetup -f --show "$IMAGE_PATH")
 echo "Loop device: $LOOP_DEV"
 
-# partition the disk (GPT with BIOS boot partition)
+# partition the disk
 echo "[3/10] Partitioning disk..."
 parted -s "$LOOP_DEV" -- mklabel gpt
-parted -s "$LOOP_DEV" -- mkpart primary 1MiB 3MiB          # BIOS boot partition
-parted -s "$LOOP_DEV" -- mkpart primary btrfs 3MiB 4GiB    # root (smaller for 5G disk)
-parted -s "$LOOP_DEV" -- mkpart primary ext4 4GiB 100%     # /var/lib
-parted -s "$LOOP_DEV" -- set 1 bios_grub on
+if [ "$BOOT" = "efi" ]; then
+    parted -s "$LOOP_DEV" -- mkpart primary fat32 1MiB 257MiB   # EFI System Partition
+    parted -s "$LOOP_DEV" -- mkpart primary btrfs 257MiB 4GiB   # root
+    parted -s "$LOOP_DEV" -- mkpart primary ext4 4GiB 100%      # /var/lib
+    parted -s "$LOOP_DEV" -- set 1 esp on
+    parted -s "$LOOP_DEV" -- set 1 boot on
+else
+    parted -s "$LOOP_DEV" -- mkpart primary 1MiB 3MiB           # BIOS boot partition
+    parted -s "$LOOP_DEV" -- mkpart primary btrfs 3MiB 4GiB     # root
+    parted -s "$LOOP_DEV" -- mkpart primary ext4 4GiB 100%      # /var/lib
+    parted -s "$LOOP_DEV" -- set 1 bios_grub on
+fi
 
 # reload partition table and create device mappings
 echo "[4/10] Creating partition mappings..."
@@ -62,12 +70,19 @@ PART2="/dev/mapper/$(echo "$PART_MAPPINGS" | sed -n 2p)"
 PART3="/dev/mapper/$(echo "$PART_MAPPINGS" | sed -n 3p)"
 
 echo "Partitions:"
-echo "  BIOS boot: $PART1"
+if [ "$BOOT" = "efi" ]; then
+    echo "  ESP:       $PART1"
+else
+    echo "  BIOS boot: $PART1"
+fi
 echo "  Root:      $PART2"
 echo "  /var/lib:  $PART3"
 
 # format partitions
 echo "[5/10] Formatting partitions..."
+if [ "$BOOT" = "efi" ]; then
+    mkfs.fat -F 32 "$PART1"
+fi
 mkfs.btrfs -f "$PART2"
 mkfs.ext4 -F "$PART3"
 
@@ -84,6 +99,10 @@ umount /mnt
 mount -o subvol=@rootfs "$PART2" /mnt
 mkdir -p /mnt/var/lib
 mount "$PART3" /mnt/var/lib
+if [ "$BOOT" = "efi" ]; then
+    mkdir -p /mnt/boot/efi
+    mount "$PART1" /mnt/boot/efi
+fi
 
 # bootstrap Alpine Linux using apk.static
 # reference: https://wiki.alpinelinux.org/wiki/Bootstrapping_Alpine_Linux
@@ -122,12 +141,20 @@ echo "[8/10] Configuring system..."
 
 # install essential packages
 # reference: https://wiki.alpinelinux.org/wiki/GRUB
+if [ "$BOOT" = "efi" ]; then
+    GRUB_PKG="grub-efi"
+    EXTRA_PKGS="dosfstools"
+else
+    GRUB_PKG="grub-bios"
+    EXTRA_PKGS=""
+fi
+
 chroot /mnt apk update
 chroot /mnt apk add --no-cache \
     linux-virt \
     linux-firmware-none \
     grub \
-    grub-bios \
+    "$GRUB_PKG" \
     btrfs-progs \
     e2fsprogs-extra \
     openssh \
@@ -135,7 +162,8 @@ chroot /mnt apk add --no-cache \
     ca-certificates \
     openrc \
     mkinitfs \
-    cloud-init
+    cloud-init \
+    $EXTRA_PKGS
 
 # set hostname
 echo "server" > /mnt/etc/hostname
@@ -215,10 +243,19 @@ echo "Generating fstab with UUIDs..."
 ROOT_UUID=$(blkid -s UUID -o value "$PART2")
 VARLIB_UUID=$(blkid -s UUID -o value "$PART3")
 
-cat > /mnt/etc/fstab << EOF
+if [ "$BOOT" = "efi" ]; then
+    ESP_UUID=$(blkid -s UUID -o value "$PART1")
+    cat > /mnt/etc/fstab << EOF
+UUID=$ROOT_UUID   /          btrfs  subvol=@rootfs,defaults,noatime  0 1
+UUID=$VARLIB_UUID /var/lib   ext4   defaults,noatime                 0 2
+UUID=$ESP_UUID    /boot/efi  vfat   defaults                         0 0
+EOF
+else
+    cat > /mnt/etc/fstab << EOF
 UUID=$ROOT_UUID   /         btrfs  subvol=@rootfs,defaults,noatime  0 1
 UUID=$VARLIB_UUID /var/lib  ext4   defaults,noatime                 0 2
 EOF
+fi
 
 # configure mkinitfs for btrfs and virtio support
 # reference: https://wiki.alpinelinux.org/wiki/Btrfs
@@ -289,8 +326,12 @@ GRUB_SERIAL_COMMAND="serial --unit=0 --speed=115200"
 GRUB_DISABLE_OS_PROBER=true
 EOF
 
-# install to the loop device
-chroot /mnt grub-install --target=i386-pc "$LOOP_DEV"
+# install grub
+if [ "$BOOT" = "efi" ]; then
+    chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable --no-nvram
+else
+    chroot /mnt grub-install --target=i386-pc "$LOOP_DEV"
+fi
 
 # generate configuration
 chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
@@ -305,6 +346,7 @@ umount /mnt/dev/pts 2>/dev/null || true
 umount /mnt/dev 2>/dev/null || true
 umount /mnt/sys 2>/dev/null || true
 umount /mnt/proc 2>/dev/null || true
+umount /mnt/boot/efi 2>/dev/null || true
 umount /mnt/var/lib 2>/dev/null || true
 umount /mnt 2>/dev/null || true
 

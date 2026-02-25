@@ -13,24 +13,28 @@
     let
       system = "x86_64-linux";
 
+      boot = if builtins.getEnv "BOOT" != "" then builtins.getEnv "BOOT" else "bios";
+
       # configuration shared by all server types
       baseConfig = { config, pkgs, lib, modulesPath, ... }: {
         imports = [
           "${modulesPath}/profiles/minimal.nix"
           "${modulesPath}/profiles/qemu-guest.nix"
           disko.nixosModules.disko
-          ./disco.nix
+          ./disco-${boot}.nix
         ];
 
         nix.registry = lib.mkForce {};
 
-        # BIOS boot - disko handles grub device via disco.nix
+        # boot loader
         boot.loader.grub.enable = true;
-        boot.loader.grub.efiSupport = false;
+        boot.loader.grub.efiSupport = boot == "efi";
+        boot.loader.grub.efiInstallAsRemovable = boot == "efi";
+        boot.loader.grub.device = if boot == "efi" then "nodev" else lib.mkDefault "/dev/sda";
 
         boot.initrd.availableKernelModules = [ "ahci" "virtio_pci" "virtio_scsi" "sd_mod" "sr_mod" ];
 
-        # fileSystems are defined by disko in disco.nix
+        # fileSystems are defined by disko in disco-*.nix
 
         networking.hostName = "server";  # generic, will be changed post-install
         networking.useDHCP = true;

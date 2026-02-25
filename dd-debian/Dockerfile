@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
   btrfs-progs \
   dosfstools \
   grub-pc-bin \
+  grub-efi-amd64-bin \
   grub2-common \
   kpartx \
   qemu-utils \
