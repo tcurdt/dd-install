@@ -6,6 +6,7 @@ RUN apk add --no-cache \
   parted \
   btrfs-progs \
   e2fsprogs \
+  xfsprogs \
   dosfstools \
   grub \
   grub-bios \

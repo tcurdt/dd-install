@@ -50,7 +50,7 @@ assert_command chroot
 assert_command funzip
 assert_command pv
 assert_command parted
-assert_command resize2fs
+assert_command blkid
 
 # auto-detect target disk if not specified
 if [ -z "$TARGET_DISK" ]; then
@@ -130,10 +130,37 @@ sleep 2
 parted -s -f "$TARGET_DISK" print
 parted -s -f "$TARGET_DISK" resizepart 3 100%
 
-# resize the ext4 filesystem on partition 3
-VARLIB_PART="${TARGET_DISK}3"
-e2fsck -f -y "$VARLIB_PART" || true
-resize2fs "$VARLIB_PART" || true
+# resize the filesystem on partition 3
+VARLIB_PART=""
+for part in "${TARGET_DISK}3" "${TARGET_DISK}p3"; do
+  if [ -b "$part" ]; then
+    VARLIB_PART="$part"
+    break
+  fi
+done
+
+if [ -z "$VARLIB_PART" ]; then
+  echo "error: could not find partition 3 for $TARGET_DISK"
+  exit 1
+fi
+
+VARLIB_FSTYPE=$(blkid -s TYPE -o value "$VARLIB_PART" || true)
+
+if [ "$VARLIB_FSTYPE" = "ext4" ]; then
+  assert_command e2fsck
+  assert_command resize2fs
+  e2fsck -f -y "$VARLIB_PART" || true
+  resize2fs "$VARLIB_PART" || true
+elif [ "$VARLIB_FSTYPE" = "xfs" ]; then
+  assert_command xfs_growfs
+  mkdir -p /mnt/varlib-grow
+  mount -t xfs "$VARLIB_PART" /mnt/varlib-grow
+  xfs_growfs /mnt/varlib-grow
+  umount /mnt/varlib-grow
+else
+  echo "warning: unsupported filesystem type on $VARLIB_PART: ${VARLIB_FSTYPE:-unknown}"
+  echo "skipping filesystem resize"
+fi
 
 echo ""
 echo "[4/5] setting up deployed system"

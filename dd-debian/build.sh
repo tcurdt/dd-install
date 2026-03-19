@@ -50,13 +50,13 @@ parted -s "$LOOP_DEV" -- mklabel gpt
 if [ "$BOOT" = "efi" ]; then
     parted -s "$LOOP_DEV" -- mkpart primary fat32 1MiB 257MiB   # EFI System Partition
     parted -s "$LOOP_DEV" -- mkpart primary btrfs 257MiB 4GiB   # root
-    parted -s "$LOOP_DEV" -- mkpart primary ext4 4GiB 100%      # /var/lib
+    parted -s "$LOOP_DEV" -- mkpart primary xfs 4GiB 100%       # /var/lib
     parted -s "$LOOP_DEV" -- set 1 esp on
     parted -s "$LOOP_DEV" -- set 1 boot on
 else
     parted -s "$LOOP_DEV" -- mkpart primary 1MiB 3MiB           # BIOS boot partition
     parted -s "$LOOP_DEV" -- mkpart primary btrfs 3MiB 4GiB     # root
-    parted -s "$LOOP_DEV" -- mkpart primary ext4 4GiB 100%      # /var/lib
+    parted -s "$LOOP_DEV" -- mkpart primary xfs 4GiB 100%       # /var/lib
     parted -s "$LOOP_DEV" -- set 1 bios_grub on
 fi
 
@@ -87,7 +87,7 @@ if [ "$BOOT" = "efi" ]; then
     mkfs.fat -F 32 "$PART1"
 fi
 mkfs.btrfs -f "$PART2"
-mkfs.ext4 -F "$PART3"
+mkfs.xfs -f "$PART3"
 
 # Mount partitions and create btrfs subvolume
 echo "[6/9] Mounting partitions..."
@@ -149,6 +149,7 @@ chroot /mnt apt-get $APT_OPTIONS --yes install \
     iputils-ping \
     ca-certificates \
     btrfs-progs \
+    xfsprogs \
     cloud-init \
     $EXTRA_PKGS
 
@@ -241,13 +242,13 @@ if [ "$BOOT" = "efi" ]; then
     ESP_UUID=$(blkid -s UUID -o value "$PART1")
     cat > /mnt/etc/fstab << EOF
 UUID=$ROOT_UUID   /          btrfs  subvol=@rootfs,defaults,noatime  0 1
-UUID=$VARLIB_UUID /var/lib   ext4   defaults,noatime                 0 2
+UUID=$VARLIB_UUID /var/lib   xfs    defaults,noatime                 0 2
 UUID=$ESP_UUID    /boot/efi  vfat   defaults                         0 0
 EOF
 else
     cat > /mnt/etc/fstab << EOF
 UUID=$ROOT_UUID   /         btrfs  subvol=@rootfs,defaults,noatime  0 1
-UUID=$VARLIB_UUID /var/lib  ext4   defaults,noatime                 0 2
+UUID=$VARLIB_UUID /var/lib  xfs    defaults,noatime                 0 2
 EOF
 fi
 
@@ -273,6 +274,9 @@ else
 fi
 
 # Update initramfs
+if ! grep -qx "xfs" /mnt/etc/initramfs-tools/modules; then
+    echo "xfs" >> /mnt/etc/initramfs-tools/modules
+fi
 chroot /mnt update-initramfs -u -k all
 
 # Generate grub configuration

@@ -60,7 +60,7 @@ fi
 echo ""
 echo "[6/8] Configuring installed system..."
 
-chroot /mnt apk add zstd curl openssh
+chroot /mnt apk add zstd curl openssh xfsprogs
 
 # Add hostshare mount to fstab
 mkdir -p /mnt/host
