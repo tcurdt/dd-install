@@ -9,6 +9,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="${VERSION:-3.21}"
 BOOT="${BOOT:-bios}"
 ARCH="${ARCH:-x86_64}"
+DATAFS="${DATAFS:-xfs}"
 SSH_PUBKEY_FILE="${SSH_PUBKEY_FILE:-$HOME/.ssh/id_ed25519.pub}"
 OUTPUT_DIR="${OUTPUT_DIR:-${DIR}/result}"
 
@@ -38,5 +39,6 @@ docker run --rm --privileged \
   -e VERSION="$VERSION" \
   -e BOOT="$BOOT" \
   -e ARCH="$ARCH" \
+  -e DATAFS="$DATAFS" \
   -e SSH_PUBKEY_FILE="/etc/ssh.pub" \
   alpine-dd-builder /work/build.sh

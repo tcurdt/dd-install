@@ -3,6 +3,7 @@
 VERSION="${VERSION:-3.21}"
 BOOT="${BOOT:-bios}"
 ARCH="${ARCH:-x86_64}"
+DATAFS="${DATAFS:-xfs}"
 SSH_PUBKEY_FILE="${SSH_PUBKEY_FILE:-$HOME/.ssh/id_ed25519.pub}"
 OUTPUT_DIR="${OUTPUT_DIR:-/result}"
 
@@ -16,6 +17,7 @@ IMAGE_SIZE="${IMAGE_SIZE:-5G}"
 echo "VERSION: $VERSION"
 echo "BOOT: $BOOT"
 echo "ARCH: ${ARCH}"
+echo "DATAFS: ${DATAFS}"
 echo "SSH_PUBKEY_FILE: ${SSH_PUBKEY_FILE}"
 echo "OUTPUT: $OUTPUT_DIR/$IMAGE"
 echo ""
@@ -23,6 +25,7 @@ echo ""
 cleanup() {
     if [ -n "${LOOP_DEV:-}" ]; then
         umount -R /mnt 2>/dev/null || true
+        zpool export varlib 2>/dev/null || true
         kpartx -d "$LOOP_DEV" 2>/dev/null || true
         losetup -d "$LOOP_DEV" 2>/dev/null || true
     fi
@@ -47,13 +50,13 @@ parted -s "$LOOP_DEV" -- mklabel gpt
 if [ "$BOOT" = "efi" ]; then
     parted -s "$LOOP_DEV" -- mkpart primary fat32 1MiB 257MiB   # EFI System Partition
     parted -s "$LOOP_DEV" -- mkpart primary btrfs 257MiB 4GiB   # root
-    parted -s "$LOOP_DEV" -- mkpart primary xfs 4GiB 100%       # /var/lib
+    parted -s "$LOOP_DEV" -- mkpart primary 4GiB 100%            # /var/lib
     parted -s "$LOOP_DEV" -- set 1 esp on
     parted -s "$LOOP_DEV" -- set 1 boot on
 else
-    parted -s "$LOOP_DEV" -- mkpart primary 1MiB 3MiB           # BIOS boot partition
-    parted -s "$LOOP_DEV" -- mkpart primary btrfs 3MiB 4GiB     # root
-    parted -s "$LOOP_DEV" -- mkpart primary xfs 4GiB 100%       # /var/lib
+    parted -s "$LOOP_DEV" -- mkpart primary 1MiB 3MiB            # BIOS boot partition
+    parted -s "$LOOP_DEV" -- mkpart primary btrfs 3MiB 4GiB      # root
+    parted -s "$LOOP_DEV" -- mkpart primary 4GiB 100%            # /var/lib
     parted -s "$LOOP_DEV" -- set 1 bios_grub on
 fi
 
@@ -84,7 +87,23 @@ if [ "$BOOT" = "efi" ]; then
     mkfs.fat -F 32 "$PART1"
 fi
 mkfs.btrfs -f "$PART2"
-mkfs.xfs -f "$PART3"
+if [ "$DATAFS" = "zfs" ]; then
+    # load ZFS module in the build container
+    modprobe zfs 2>/dev/null || true
+    # create a single-disk ZFS pool named "varlib" on PART3
+    zpool create -f \
+        -o ashift=12 \
+        -O atime=off \
+        -O compression=lz4 \
+        -O xattr=sa \
+        -O acltype=posixacl \
+        -O mountpoint=/var/lib \
+        varlib "$PART3"
+elif [ "$DATAFS" = "ext4" ]; then
+    mkfs.ext4 -F "$PART3"
+else
+    mkfs.xfs -f "$PART3"
+fi
 
 # mount partitions and create btrfs subvolume
 echo "[6/10] Mounting partitions..."
@@ -98,7 +117,12 @@ umount /mnt
 # mount with subvolume
 mount -o subvol=@rootfs "$PART2" /mnt
 mkdir -p /mnt/var/lib
-mount "$PART3" /mnt/var/lib
+if [ "$DATAFS" = "zfs" ]; then
+    zfs set mountpoint=legacy varlib
+    mount -t zfs varlib /mnt/var/lib
+else
+    mount "$PART3" /mnt/var/lib
+fi
 if [ "$BOOT" = "efi" ]; then
     mkdir -p /mnt/boot/efi
     mount "$PART1" /mnt/boot/efi
@@ -165,6 +189,11 @@ chroot /mnt apk add --no-cache \
     mkinitfs \
     cloud-init \
     $EXTRA_PKGS
+
+# install ZFS packages if needed
+if [ "$DATAFS" = "zfs" ]; then
+    chroot /mnt apk add --no-cache zfs
+fi
 
 # set hostname
 echo "server" > /mnt/etc/hostname
@@ -242,33 +271,58 @@ chmod 600 /mnt/root/.ssh/authorized_keys
 # create fstab with UUIDs (device-independent)
 echo "Generating fstab with UUIDs..."
 ROOT_UUID=$(blkid -s UUID -o value "$PART2")
-VARLIB_UUID=$(blkid -s UUID -o value "$PART3")
 
 if [ "$BOOT" = "efi" ]; then
     ESP_UUID=$(blkid -s UUID -o value "$PART1")
-    cat > /mnt/etc/fstab << EOF
+    if [ "$DATAFS" = "zfs" ]; then
+        cat > /mnt/etc/fstab << EOF
 UUID=$ROOT_UUID   /          btrfs  subvol=@rootfs,defaults,noatime  0 1
-UUID=$VARLIB_UUID /var/lib   xfs    defaults,noatime                 0 2
+varlib            /var/lib   zfs    defaults,noatime                 0 0
 UUID=$ESP_UUID    /boot/efi  vfat   defaults                         0 0
 EOF
-else
-    cat > /mnt/etc/fstab << EOF
-UUID=$ROOT_UUID   /         btrfs  subvol=@rootfs,defaults,noatime  0 1
-UUID=$VARLIB_UUID /var/lib  xfs    defaults,noatime                 0 2
+    else
+        VARLIB_UUID=$(blkid -s UUID -o value "$PART3")
+        cat > /mnt/etc/fstab << EOF
+UUID=$ROOT_UUID   /          btrfs  subvol=@rootfs,defaults,noatime  0 1
+UUID=$VARLIB_UUID /var/lib   $DATAFS  defaults,noatime               0 2
+UUID=$ESP_UUID    /boot/efi  vfat   defaults                         0 0
 EOF
+    fi
+else
+    if [ "$DATAFS" = "zfs" ]; then
+        cat > /mnt/etc/fstab << EOF
+UUID=$ROOT_UUID   /         btrfs  subvol=@rootfs,defaults,noatime  0 1
+varlib            /var/lib  zfs    defaults,noatime                  0 0
+EOF
+    else
+        VARLIB_UUID=$(blkid -s UUID -o value "$PART3")
+        cat > /mnt/etc/fstab << EOF
+UUID=$ROOT_UUID   /         btrfs  subvol=@rootfs,defaults,noatime  0 1
+UUID=$VARLIB_UUID /var/lib  $DATAFS  defaults,noatime               0 2
+EOF
+    fi
 fi
 
 # configure mkinitfs for btrfs and virtio support
 # reference: https://wiki.alpinelinux.org/wiki/Btrfs
 echo "[9/10] Configuring initramfs with btrfs support..."
-cat > /mnt/etc/mkinitfs/mkinitfs.conf << 'EOF'
+if [ "$DATAFS" = "zfs" ]; then
+    cat > /mnt/etc/mkinitfs/mkinitfs.conf << 'EOF'
+features="ata base btrfs ext4 xfs zfs keymap kms mmc nvme scsi usb virtio"
+EOF
+else
+    cat > /mnt/etc/mkinitfs/mkinitfs.conf << 'EOF'
 features="ata base btrfs ext4 xfs keymap kms mmc nvme scsi usb virtio"
 EOF
+fi
 
 # add btrfs module to load at boot
 # reference: https://wiki.alpinelinux.org/wiki/Btrfs
 echo "btrfs" >> /mnt/etc/modules
 echo "xfs" >> /mnt/etc/modules
+if [ "$DATAFS" = "zfs" ]; then
+    echo "zfs" >> /mnt/etc/modules
+fi
 
 # find the kernel version
 KERNEL_VERSION=$(ls /mnt/lib/modules/ | head -1)
@@ -291,6 +345,10 @@ chroot /mnt rc-update add hostname boot
 chroot /mnt rc-update add bootmisc boot
 chroot /mnt rc-update add networking boot
 chroot /mnt rc-update add btrfs-scan boot  # critical for btrfs root!
+if [ "$DATAFS" = "zfs" ]; then
+    chroot /mnt rc-update add zfs-import sysinit
+    chroot /mnt rc-update add zfs-mount boot
+fi
 
 # default runlevel
 chroot /mnt rc-update add sshd default
@@ -350,6 +408,9 @@ umount /mnt/sys 2>/dev/null || true
 umount /mnt/proc 2>/dev/null || true
 umount /mnt/boot/efi 2>/dev/null || true
 umount /mnt/var/lib 2>/dev/null || true
+if [ "$DATAFS" = "zfs" ]; then
+    zpool export varlib 2>/dev/null || true
+fi
 umount /mnt 2>/dev/null || true
 
 # remove loop device
