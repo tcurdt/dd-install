@@ -45,7 +45,7 @@ jobs:
           ls -lh result
 
       - name: upload artifact
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v7
         with:
           name: nixos-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img
           path: dd-nixos/result
@@ -78,7 +78,7 @@ jobs:
           find result
 
       - name: upload image
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v7
         with:
           name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img
           path: dd-debian/result/*.img
@@ -111,7 +111,7 @@ jobs:
           find result
 
       - name: upload image
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v7
         with:
           name: alpine-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img
           path: dd-alpine/result/*.img
