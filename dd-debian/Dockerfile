@@ -1,6 +1,8 @@
 FROM debian:trixie
 WORKDIR /work
 
+RUN echo "deb http://deb.debian.org/debian trixie contrib" > /etc/apt/sources.list.d/contrib.list
+
 RUN apt-get update && apt-get install -y \
   debootstrap \
   parted \

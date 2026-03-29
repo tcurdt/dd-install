@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   nixos:
+    if: false
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -119,7 +120,7 @@ jobs:
           retention-days: 7
 
   release:
-    needs: [nixos, debian, alpine]
+    needs: [debian, alpine]
     runs-on: ubuntu-latest
     steps:
       - name: download artifacts

@@ -9,9 +9,6 @@ RUN apk add --no-cache \
   xfsprogs \
   zfs \
   dosfstools \
-  grub \
-  grub-bios \
-  grub-efi \
   multipath-tools \
   qemu-img \
   zstd \
@@ -20,6 +17,9 @@ RUN apk add --no-cache \
   coreutils \
   mkinitfs \
   linux-virt
+
+# install grub without scripts to avoid grub-probe failing on overlay filesystem
+RUN apk add --no-cache --no-scripts grub grub-bios grub-efi
 
 COPY build.sh /work/build.sh
 RUN chmod +x /work/build.sh
