@@ -18,9 +18,9 @@ jobs:
       matrix:
         version: [25.11]
         server: [cpx]
-        # boot: [bios, efi]
-        boot: [efi]
+        boot: [efi] # [bios, efi]
         arch: [amd]
+        datafs: [zfs] # [ext4,xfs,zfs]
     steps:
       - name: checkout
         uses: actions/checkout@v6
@@ -40,13 +40,14 @@ jobs:
           cd dd-nixos
           sed -i 's|nixpkgs/nixos-25.11|nixpkgs/nixos-${{ matrix.version }}|g' flake.nix
           sed -i 's|boot = "bios"|boot = "${{ matrix.boot }}"|g' flake.nix
+          sed -i 's|datafs = "xfs"|datafs = "${{ matrix.datafs }}"|g' flake.nix
           nix build .#${{ matrix.server }} --print-build-logs
           ls -lh result
 
       - name: upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v8
         with:
-          name: nixos-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}.img
+          name: nixos-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img
           path: dd-nixos/result
           compression-level: 2
           retention-days: 7
@@ -57,9 +58,9 @@ jobs:
       matrix:
         version: [trixie]
         server: [cpx]
-        # boot: [bios, efi]
-        boot: [efi]
+        boot: [efi] # [bios, efi]
         arch: [amd]
+        datafs: [zfs] # [ext4,xfs,zfs]
     steps:
       - name: checkout
         uses: actions/checkout@v6
@@ -73,13 +74,13 @@ jobs:
       - name: build debian
         run: |
           cd dd-debian
-          VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} SSH_PUBKEY_FILE=authorized_keys ./docker.sh
+          VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} DATAFS=${{ matrix.datafs }} SSH_PUBKEY_FILE=authorized_keys ./docker.sh
           find result
 
       - name: upload image
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v8
         with:
-          name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}.img
+          name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img
           path: dd-debian/result/*.img
           compression-level: 2
           retention-days: 7
@@ -90,9 +91,9 @@ jobs:
       matrix:
         version: [3.21]
         server: [cpx]
-        # boot: [bios, efi]
-        boot: [efi]
+        boot: [efi] # [bios, efi]
         arch: [x86_64]
+        datafs: [zfs] # [ext4,xfs,zfs]
     steps:
       - name: checkout
         uses: actions/checkout@v6
@@ -106,13 +107,13 @@ jobs:
       - name: build alpine
         run: |
           cd dd-alpine
-          VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} SSH_PUBKEY_FILE=authorized_keys ./docker.sh
+          VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} DATAFS=${{ matrix.datafs }} SSH_PUBKEY_FILE=authorized_keys ./docker.sh
           find result
 
       - name: upload image
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v8
         with:
-          name: alpine-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}.img
+          name: alpine-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img
           path: dd-alpine/result/*.img
           compression-level: 2
           retention-days: 7
