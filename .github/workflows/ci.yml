@@ -72,7 +72,8 @@ jobs:
         run: |
           cd dd-nixos
           asset="nixos-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img.zst"
-          src="$(readlink -f result)"
+          set -- result/*.raw
+          src="$1"
           zstd -9 "$src" -o "$asset"
           gh release upload "${{ needs.prepare_release.outputs.tag }}" "$asset" --clobber
 
