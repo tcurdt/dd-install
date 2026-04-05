@@ -12,7 +12,28 @@ permissions:
   contents: write
 
 jobs:
+  prepare_release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: set release metadata
+        id: meta
+        run: |
+          echo "tag=build-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+
+      - name: create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "${{ steps.meta.outputs.tag }}" \
+            --title "Latest Build" \
+            --notes "Built from ${{ github.sha }}" \
+            --draft
+
   nixos:
+    needs: [prepare_release]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -44,15 +65,19 @@ jobs:
           nix build .#${{ matrix.server }} --print-build-logs
           ls -lh result
 
-      - name: upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: nixos-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img
-          path: dd-nixos/result
-          compression-level: 2
-          retention-days: 7
+      - name: upload release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cd dd-nixos
+          asset="nixos-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img.zst"
+          src="$(readlink -f result)"
+          zstd -9 "$src" -o "$asset"
+          gh release upload "${{ needs.prepare_release.outputs.tag }}" "$asset" --clobber
 
   debian:
+    needs: [prepare_release]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -77,15 +102,20 @@ jobs:
           VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} DATAFS=${{ matrix.datafs }} SSH_PUBKEY_FILE=authorized_keys ./docker.sh
           find result
 
-      - name: upload image
-        uses: actions/upload-artifact@v7
-        with:
-          name: debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img
-          path: dd-debian/result/*.img
-          compression-level: 2
-          retention-days: 7
+      - name: upload release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cd dd-debian
+          set -- result/*.img
+          src="$1"
+          asset="debian-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img.zst"
+          zstd -9 "$src" -o "$asset"
+          gh release upload "${{ needs.prepare_release.outputs.tag }}" "$asset" --clobber
 
   alpine:
+    needs: [prepare_release]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -110,55 +140,76 @@ jobs:
           VERSION=${{ matrix.version }} BOOT=${{ matrix.boot }} ARCH=${{ matrix.arch }} DATAFS=${{ matrix.datafs }} SSH_PUBKEY_FILE=authorized_keys ./docker.sh
           find result
 
-      - name: upload image
-        uses: actions/upload-artifact@v7
-        with:
-          name: alpine-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img
-          path: dd-alpine/result/*.img
-          compression-level: 2
-          retention-days: 7
-
-  release:
-    needs: [nixos, debian, alpine]
-    runs-on: ubuntu-latest
-    steps:
-      - name: download artifacts
-        uses: actions/download-artifact@v8
-        with:
-          path: artifacts
-
-      - name: prepare release assets
-        run: |
-          mkdir -p release
-          ls -lhR artifacts
-          for dir in artifacts/*/; do
-            name=$(basename "$dir")
-            find "$dir" -type f | while read -r file; do
-              zstd -9 "$file" -o "release/${name}.zst"
-            done
-          done
-          ls -lh release
-
-      - name: create release
+      - name: upload release asset
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          tag="build-$(date -u +%Y%m%d-%H%M%S)"
+          cd dd-alpine
+          set -- result/*.img
+          src="$1"
+          asset="alpine-${{ matrix.version }}-${{ matrix.boot }}-${{ matrix.server }}-${{ matrix.datafs }}.img.zst"
+          zstd -9 "$src" -o "$asset"
+          gh release upload "${{ needs.prepare_release.outputs.tag }}" "$asset" --clobber
 
-          gh release create "$tag" release/* \
-            --title "Latest Build" \
-            --notes "Built from ${{ github.sha }}"
+  finalize_release:
+    if: ${{ always() }}
+    needs: [prepare_release, nixos, debian, alpine]
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.finalize.outputs.published }}
+    steps:
+      - name: publish or delete draft release
+        id: finalize
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare_release.outputs.tag }}
+          NIXOS_RESULT: ${{ needs.nixos.result }}
+          DEBIAN_RESULT: ${{ needs.debian.result }}
+          ALPINE_RESULT: ${{ needs.alpine.result }}
+        run: |
+          if [ "$NIXOS_RESULT" = "success" ] && [ "$DEBIAN_RESULT" = "success" ] && [ "$ALPINE_RESULT" = "success" ]; then
+            gh release edit "$TAG" \
+              --draft=false \
+              --latest \
+              --title "Latest Build" \
+              --notes "Built from ${{ github.sha }}"
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Release Result"
+              echo "- Tag: $TAG"
+              echo "- Status: published"
+              echo "- NixOS: $NIXOS_RESULT"
+              echo "- Debian: $DEBIAN_RESULT"
+              echo "- Alpine: $ALPINE_RESULT"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh release delete "$TAG" --yes --cleanup-tag || true
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Release Result"
+              echo "- Tag: $TAG"
+              echo "- Status: draft deleted"
+              echo "- NixOS: $NIXOS_RESULT"
+              echo "- Debian: $DEBIAN_RESULT"
+              echo "- Alpine: $ALPINE_RESULT"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
-          # delete older releases, keep the one we just created
-          gh release list --json tagName --jq '.[].tagName' | while read -r old_tag; do
-            if [ "$old_tag" != "$tag" ]; then
+  cleanup_old_releases:
+    needs: [prepare_release, finalize_release]
+    if: ${{ needs.finalize_release.outputs.published == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: delete older releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare_release.outputs.tag }}
+        run: |
+          gh release list --exclude-drafts --exclude-pre-releases --json tagName --jq '.[].tagName' | while read -r old_tag; do
+            if [ "$old_tag" != "$TAG" ]; then
               gh release delete "$old_tag" --yes --cleanup-tag || true
             fi
-          done
-
-          echo "## Download URLs" >> "$GITHUB_STEP_SUMMARY"
-          for file in release/*; do
-            name=$(basename "$file")
-            echo "- https://github.com/${{ github.repository }}/releases/latest/download/${name}" >> "$GITHUB_STEP_SUMMARY"
           done
