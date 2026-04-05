@@ -193,6 +193,32 @@ chroot /mnt apk add --no-cache \
 # install ZFS packages if needed
 if [ "$DATAFS" = "zfs" ]; then
     chroot /mnt apk add --no-cache zfs
+
+    # grow varlib pool once on first boot
+    mkdir -p /mnt/etc/local.d
+    cat > /mnt/etc/local.d/zfs-grow-varlib.start << 'EOF'
+#!/bin/sh
+set -eu
+
+STAMP=/etc/zfs-grow-varlib.done
+[ -f "$STAMP" ] && exit 0
+
+if ! command -v zpool >/dev/null 2>&1; then
+    exit 0
+fi
+
+if ! zpool list -H -o name varlib >/dev/null 2>&1; then
+    exit 0
+fi
+
+zpool set autoexpand=on varlib || true
+zpool status -P varlib | awk '$1 ~ "^/dev/" { print $1 }' | while read -r dev; do
+    zpool online -e varlib "$dev" || true
+done
+
+touch "$STAMP"
+EOF
+    chmod +x /mnt/etc/local.d/zfs-grow-varlib.start
 fi
 
 # set hostname
@@ -348,6 +374,7 @@ chroot /mnt rc-update add btrfs-scan boot  # critical for btrfs root!
 if [ "$DATAFS" = "zfs" ]; then
     chroot /mnt rc-update add zfs-import sysinit
     chroot /mnt rc-update add zfs-mount boot
+    chroot /mnt rc-update add local default
 fi
 
 # default runlevel

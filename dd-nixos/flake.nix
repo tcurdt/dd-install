@@ -60,6 +60,39 @@
           boot.zfs.devNodes = lib.mkIf (datafs == "zfs") "/dev/disk/by-id";
           networking.hostId = lib.mkIf (datafs == "zfs") "deadbeef"; # required by ZFS; change post-deploy
           services.zfs.autoScrub.enable = lib.mkIf (datafs == "zfs") true;
+          systemd.services.zfs-grow-varlib = lib.mkIf (datafs == "zfs") {
+            description = "Expand varlib ZFS pool on first boot";
+            wants = [
+              "zfs-import.target"
+              "zfs-mount.service"
+            ];
+            after = [
+              "zfs-import.target"
+              "zfs-mount.service"
+              "local-fs.target"
+            ];
+            wantedBy = [ "multi-user.target" ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+            };
+            script = ''
+              set -eu
+              STAMP=/etc/zfs-grow-varlib.done
+              [ -f "$STAMP" ] && exit 0
+
+              if ! ${pkgs.zfs}/bin/zpool list -H -o name varlib >/dev/null 2>&1; then
+                exit 0
+              fi
+
+              ${pkgs.zfs}/bin/zpool set autoexpand=on varlib || true
+              ${pkgs.zfs}/bin/zpool status -P varlib | ${pkgs.gawk}/bin/awk '$1 ~ "^/dev/" { print $1 }' | while read -r dev; do
+                ${pkgs.zfs}/bin/zpool online -e varlib "$dev" || true
+              done
+
+              ${pkgs.coreutils}/bin/touch "$STAMP"
+            '';
+          };
 
           # fileSystems are defined by disko in disco-*.nix
 

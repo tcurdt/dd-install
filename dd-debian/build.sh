@@ -180,6 +180,47 @@ chroot /mnt apt-get $APT_OPTIONS --yes install \
 # install ZFS packages if needed
 if [ "$DATAFS" = "zfs" ]; then
     chroot /mnt apt-get $APT_OPTIONS --yes install zfsutils-linux
+
+    # grow varlib pool once on first boot
+    cat > /mnt/usr/local/sbin/zfs-grow-varlib << 'EOF'
+#!/bin/sh
+set -eu
+
+STAMP=/etc/zfs-grow-varlib.done
+[ -f "$STAMP" ] && exit 0
+
+if ! command -v zpool >/dev/null 2>&1; then
+    exit 0
+fi
+
+if ! zpool list -H -o name varlib >/dev/null 2>&1; then
+    exit 0
+fi
+
+zpool set autoexpand=on varlib || true
+zpool status -P varlib | awk '$1 ~ "^/dev/" { print $1 }' | while read -r dev; do
+    zpool online -e varlib "$dev" || true
+done
+
+touch "$STAMP"
+EOF
+    chmod +x /mnt/usr/local/sbin/zfs-grow-varlib
+
+    cat > /mnt/etc/systemd/system/zfs-grow-varlib.service << 'EOF'
+[Unit]
+Description=Expand varlib ZFS pool on first boot
+Wants=zfs-import.target zfs-mount.service
+After=zfs-import.target zfs-mount.service local-fs.target
+ConditionPathExists=!/etc/zfs-grow-varlib.done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/zfs-grow-varlib
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
 fi
 
 # Set hostname
@@ -327,6 +368,7 @@ if [ "$DATAFS" = "zfs" ]; then
     echo "zfs" >> /mnt/etc/initramfs-tools/modules
     # enable zfs-mount service
     chroot /mnt systemctl enable zfs-import-cache zfs-import-scan zfs-mount zfs-share zfs.target 2>/dev/null || true
+    chroot /mnt systemctl enable zfs-grow-varlib.service 2>/dev/null || true
 fi
 chroot /mnt update-initramfs -u -k all
 
