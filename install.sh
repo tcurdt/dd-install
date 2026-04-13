@@ -89,14 +89,14 @@ if echo "$IMAGE" | grep -qE '^https?://'; then
     # github artifact downloads are zip files with trailing metadata that
     # causes funzip to exit non-zero even though the data extracted successfully
     set +o pipefail
-    curl -fsSL "$IMAGE" | pv | funzip | dd of="$TARGET_DISK" bs=4M
+    curl -fsSL "$IMAGE" | pv | funzip | dd of="$TARGET_DISK" bs=4M conv=sparse
     set -o pipefail
   elif echo "$IMAGE" | grep -qE '\.zip$'; then
-    curl -fsSL "$IMAGE" | pv | funzip | dd of="$TARGET_DISK" bs=4M
+    curl -fsSL "$IMAGE" | pv | funzip | dd of="$TARGET_DISK" bs=4M conv=sparse
   elif echo "$IMAGE" | grep -qE '\.zst$'; then
-    curl -fsSL "$IMAGE" | pv | zstd -d | dd of="$TARGET_DISK" bs=4M
+    curl -fsSL "$IMAGE" | pv | zstd -d | dd of="$TARGET_DISK" bs=4M conv=sparse
   else
-    curl -fsSL "$IMAGE" | pv | dd of="$TARGET_DISK" bs=4M
+    curl -fsSL "$IMAGE" | pv | dd of="$TARGET_DISK" bs=4M conv=sparse
   fi
 else
   # local
@@ -106,11 +106,11 @@ else
   fi
 
   if echo "$IMAGE" | grep -qE '\.zst$'; then
-    cat "$IMAGE" | zstd -d | dd of="$TARGET_DISK" bs=4M
+    cat "$IMAGE" | zstd -d | dd of="$TARGET_DISK" bs=4M conv=sparse
   elif echo "$IMAGE" | grep -qE '\.zip$'; then
-    cat "$IMAGE" | funzip | dd of="$TARGET_DISK" bs=4M
+    cat "$IMAGE" | funzip | dd of="$TARGET_DISK" bs=4M conv=sparse
   else
-    dd if="$IMAGE" of="$TARGET_DISK" bs=4M
+    dd if="$IMAGE" of="$TARGET_DISK" bs=4M conv=sparse
   fi
 fi
 

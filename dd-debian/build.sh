@@ -15,7 +15,7 @@ ARCH_BITS="${ARCH}64"
 
 # IMAGE="debian-${VERSION}-${BOOT}-${ARCH_BITS}.img"
 IMAGE="debian.img"
-IMAGE_SIZE="${IMAGE_SIZE:-5G}"
+IMAGE_SIZE="${IMAGE_SIZE:-11G}"
 
 echo "VERSION: $VERSION"
 echo "BOOT: $BOOT"
@@ -52,14 +52,14 @@ echo "[3/9] Partitioning disk..."
 parted -s "$LOOP_DEV" -- mklabel gpt
 if [ "$BOOT" = "efi" ]; then
     parted -s "$LOOP_DEV" -- mkpart primary fat32 1MiB 257MiB   # EFI System Partition
-    parted -s "$LOOP_DEV" -- mkpart primary btrfs 257MiB 4GiB   # root
-    parted -s "$LOOP_DEV" -- mkpart primary 4GiB 100%            # /var/lib
+    parted -s "$LOOP_DEV" -- mkpart primary btrfs 257MiB 10GiB  # root
+    parted -s "$LOOP_DEV" -- mkpart primary 10GiB 100%           # /var/lib
     parted -s "$LOOP_DEV" -- set 1 esp on
     parted -s "$LOOP_DEV" -- set 1 boot on
 else
     parted -s "$LOOP_DEV" -- mkpart primary 1MiB 3MiB            # BIOS boot partition
-    parted -s "$LOOP_DEV" -- mkpart primary btrfs 3MiB 4GiB      # root
-    parted -s "$LOOP_DEV" -- mkpart primary 4GiB 100%            # /var/lib
+    parted -s "$LOOP_DEV" -- mkpart primary btrfs 3MiB 10GiB    # root
+    parted -s "$LOOP_DEV" -- mkpart primary 10GiB 100%           # /var/lib
     parted -s "$LOOP_DEV" -- set 1 bios_grub on
 fi
 
