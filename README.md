@@ -9,9 +9,9 @@
 2. run the script pointing to an image
 
 ```
-   bash install.sh https://nightly.link/tcurdt/dd-install/actions/runs/21321173101/nixos-25.11-cpx.img.zip
-   bash install.sh https://nightly.link/tcurdt/dd-install/actions/runs/21321173101/alpine-3.21-cpx.img.zip
-   bash install.sh https://nightly.link/tcurdt/dd-install/actions/runs/21321173101/debian-trixie-cpx.img.zip
+   bash install.sh https://github.com/tcurdt/dd-install/releases/download/build-24332928883-1/nixos-25.11-efi-cpx-zfs.img.zst
+   bash install.sh https://github.com/tcurdt/dd-install/releases/download/build-24332928883-1/alpine-3.21-efi-cpx-zfs.img.zst
+   bash install.sh https://github.com/tcurdt/dd-install/releases/download/build-24332928883-1/debian-trixie-efi-cpx-zfs.img.zst
 ```
 
 # testing on qemu
