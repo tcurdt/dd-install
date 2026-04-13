@@ -39,7 +39,11 @@
             (if datafs == "zfs" then ./disco-${boot}-zfs.nix else ./disco-${boot}.nix)
           ];
 
-          nix.registry = lib.mkForce { };
+          nix.settings.experimental-features = [
+            "nix-command"
+            "flakes"
+          ];
+          nix.registry = lib.mkForce { nixpkgs.flake = nixpkgs; };
 
           # boot loader
           boot.loader.grub.enable = true;
@@ -148,9 +152,11 @@
           environment.systemPackages =
             with pkgs;
             [
+              e2fsprogs
+              nixos-rebuild
               nano
               curl
-              e2fsprogs
+              gitMinimal
             ]
             ++ lib.optionals (datafs == "zfs") [ zfs ];
           environment.stub-ld.enable = false;
