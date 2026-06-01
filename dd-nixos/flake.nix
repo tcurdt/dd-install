@@ -2,7 +2,7 @@
   description = "nixos image for dd-install";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -49,7 +49,6 @@
           boot.loader.grub.enable = true;
           boot.loader.grub.efiSupport = boot == "efi";
           boot.loader.grub.efiInstallAsRemovable = boot == "efi";
-          boot.loader.grub.device = if boot == "efi" then "nodev" else lib.mkDefault "/dev/sda";
 
           boot.initrd.availableKernelModules = [
             "ahci"
@@ -102,6 +101,7 @@
 
           networking.hostName = "server"; # generic, will be changed post-install
           networking.useDHCP = true;
+          networking.useNetworkd = true;
           networking.firewall.enable = true;
           networking.firewall.allowedTCPPorts = [ 22 ];
 
@@ -129,14 +129,12 @@
 
           time.timeZone = "UTC";
 
-          # keys for initial boot
-          # users.users.root.openssh.authorizedKeys.keys =
-          #   if builtins.pathExists ./authorized_keys
-          #   then lib.splitString "\n" (lib.removeSuffix "\n" (builtins.readFile ./authorized_keys))
-          #   else [];
-          users.users.root.openssh.authorizedKeys.keys = lib.splitString "\n" (
-            lib.removeSuffix "\n" (builtins.readFile ./authorized_keys)
-          );
+          # keys for initial boot; CI injects authorized_keys before image builds
+          users.users.root.openssh.authorizedKeys.keys =
+            if builtins.pathExists ./authorized_keys then
+              lib.splitString "\n" (lib.removeSuffix "\n" (builtins.readFile ./authorized_keys))
+            else
+              [ ];
 
           # minimal
           boot.enableContainers = false;
@@ -145,7 +143,6 @@
             "emergency.service"
             "emergency.target"
           ];
-          boot.initrd.systemd.enable = lib.mkForce false;
           boot.kernelPackages = pkgs.linuxPackages;
           documentation.enable = false;
           environment.defaultPackages = lib.mkForce [ ];

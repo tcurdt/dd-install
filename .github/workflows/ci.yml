@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: [25.11]
+        version: [unstable]
         server: [cpx]
         boot: [efi] # [bios, efi]
         arch: [amd]
@@ -59,7 +59,7 @@ jobs:
       - name: build nixos
         run: |
           cd dd-nixos
-          sed -i 's|nixpkgs/nixos-25.11|nixpkgs/nixos-${{ matrix.version }}|g' flake.nix
+          sed -i 's|nixpkgs/nixos-unstable|nixpkgs/nixos-${{ matrix.version }}|g' flake.nix
           sed -i 's|boot = "bios"|boot = "${{ matrix.boot }}"|g' flake.nix
           sed -i 's|datafs = "xfs"|datafs = "${{ matrix.datafs }}"|g' flake.nix
           nix build .#${{ matrix.server }} --print-build-logs
