@@ -44,7 +44,7 @@ jobs:
         datafs: [zfs] # [ext4,xfs,zfs]
     steps:
       - name: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: install nix
         uses: DeterminateSystems/nix-installer-action@main
@@ -89,7 +89,7 @@ jobs:
         datafs: [zfs] # [ext4,xfs,zfs]
     steps:
       - name: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: download ssh pub
         run: |
@@ -127,7 +127,7 @@ jobs:
         datafs: [zfs] # [ext4,xfs,zfs]
     steps:
       - name: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: download ssh pub
         run: |
