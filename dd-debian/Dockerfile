@@ -1,4 +1,4 @@
-FROM debian:trixie
+FROM debian:trixie-20260623
 WORKDIR /work
 
 RUN echo "deb http://deb.debian.org/debian trixie contrib" > /etc/apt/sources.list.d/contrib.list
